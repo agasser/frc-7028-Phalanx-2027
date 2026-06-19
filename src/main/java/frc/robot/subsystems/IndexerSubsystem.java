@@ -1,0 +1,138 @@
+package frc.robot.subsystems;
+
+import static frc.robot.Constants.CANIVORE_BUS;
+import static frc.robot.Constants.IndexerConstants.DEVICE_ID_INDEXER_MOTOR_FOLLOWER;
+import static frc.robot.Constants.IndexerConstants.DEVICE_ID_INDEXER_MOTOR_LEADER;
+import static frc.robot.Constants.IndexerConstants.INDEXER_EJECT_VELOCITY;
+import static frc.robot.Constants.IndexerConstants.INDEXER_FEED_VELOCITY;
+import static frc.robot.Constants.IndexerConstants.INDEXER_PEAK_TORQUE_CURRENT_FORWARD;
+import static frc.robot.Constants.IndexerConstants.INDEXER_PEAK_TORQUE_CURRENT_REVERSE;
+import static frc.robot.Constants.IndexerConstants.INDEXER_SLOT_CONFIGS;
+import static frc.robot.Constants.IndexerConstants.INDEXER_STATOR_CURRENT_LIMIT;
+import static frc.robot.Constants.IndexerConstants.INDEXER_SUPPLY_CURRENT_LIMIT;
+import static org.wpilib.units.Units.Hertz;
+import static org.wpilib.units.Units.Second;
+import static org.wpilib.units.Units.Volts;
+
+import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
+import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.TorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.hardware.ParentDevice;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+import org.wpilib.command2.Command;
+import org.wpilib.command2.SubsystemBase;
+import org.wpilib.command2.sysid.SysIdRoutine;
+import org.wpilib.command2.sysid.SysIdRoutine.Direction;
+import org.wpilib.units.measure.AngularVelocity;
+
+/**
+ * Subsystem for the Indexer.
+ */
+public class IndexerSubsystem extends SubsystemBase {
+
+  private final TalonFX indexerLeaderMotor = new TalonFX(DEVICE_ID_INDEXER_MOTOR_LEADER, CANIVORE_BUS);
+  private final TalonFX indexerFollower = new TalonFX(DEVICE_ID_INDEXER_MOTOR_FOLLOWER, CANIVORE_BUS);
+
+  private final VelocityTorqueCurrentFOC indexerVelocityTorque = new VelocityTorqueCurrentFOC(0.0);
+  private final TorqueCurrentFOC indexerTorqueControl = new TorqueCurrentFOC(0.0);
+
+  // NOTE: the output type is amps, NOT volts (even though it says volts)
+  // https://www.chiefdelphi.com/t/sysid-with-ctre-swerve-characterization/452631/8
+  private final SysIdRoutine indexerSysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.of(3.0).per(Second),
+          Volts.of(25),
+          null,
+          state -> SignalLogger.writeString("Indexer SysId", state.toString())),
+      new SysIdRoutine.Mechanism(
+          amps -> indexerLeaderMotor.setControl(indexerTorqueControl.withOutput(amps.in(Volts))),
+          null,
+          this));
+
+  /**
+   * Creates a new Subsystem for the Indexer
+   */
+  public IndexerSubsystem() {
+    var indexerTalonconfig = new TalonFXConfiguration().withSlot0(Slot0Configs.from(INDEXER_SLOT_CONFIGS))
+        .withMotorOutput(
+            new MotorOutputConfigs().withInverted(InvertedValue.Clockwise_Positive)
+                .withNeutralMode(NeutralModeValue.Coast))
+        .withTorqueCurrent(
+            new TorqueCurrentConfigs().withPeakForwardTorqueCurrent(INDEXER_PEAK_TORQUE_CURRENT_FORWARD)
+                .withPeakReverseTorqueCurrent(INDEXER_PEAK_TORQUE_CURRENT_REVERSE))
+        .withCurrentLimits(
+            new CurrentLimitsConfigs().withStatorCurrentLimit(INDEXER_STATOR_CURRENT_LIMIT)
+                .withStatorCurrentLimitEnable(true)
+                .withSupplyCurrentLimit(INDEXER_SUPPLY_CURRENT_LIMIT)
+                .withSupplyCurrentLimitEnable(true));
+
+    indexerLeaderMotor.getConfigurator().apply(indexerTalonconfig);
+    indexerFollower.getConfigurator().apply(indexerTalonconfig);
+
+    // Increase update frequency for leader for fast following
+    indexerLeaderMotor.getTorqueCurrent(false).setUpdateFrequency(Hertz.of(200));
+    // Keep higher update frequency for important signals
+    BaseStatusSignal.setUpdateFrequencyForAll(
+        Hertz.of(50),
+          indexerLeaderMotor.getVelocity(false),
+          indexerLeaderMotor.getStatorCurrent(false),
+          indexerLeaderMotor.getSupplyCurrent(false),
+          indexerFollower.getStatorCurrent(false),
+          indexerFollower.getTorqueCurrent(false),
+          indexerFollower.getSupplyCurrent(false));
+    // Turn unused and follower signals down, but not off, for logging
+    ParentDevice.optimizeBusUtilizationForAll(indexerLeaderMotor, indexerFollower);
+
+    indexerFollower.setControl(new Follower(indexerLeaderMotor.getDeviceID(), MotorAlignmentValue.Opposed));
+  }
+
+  public Command sysIdIndexerDynamicCommand(Direction direction) {
+    return indexerSysIdRoutine.dynamic(direction).withName("SysId indexer dynamic " + direction).finallyDo(this::stop);
+  }
+
+  public Command sysIdIndexerQuasistaticCommand(Direction direction) {
+    return indexerSysIdRoutine.quasistatic(direction)
+        .withName("SysId indexer quasi " + direction)
+        .finallyDo(this::stop);
+  }
+
+  /**
+   * Spins the indexer forward to feed the shooter
+   */
+  public void feedShooter() {
+    indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(INDEXER_FEED_VELOCITY));
+  }
+
+  /**
+   * Spins the indexer in reverse to eject or unjam fuel
+   */
+  public void eject() {
+    indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(INDEXER_EJECT_VELOCITY));
+  }
+
+  /**
+   * Run the indexer at the set velocity. Used for tuning, should not be used for normal operation.
+   * 
+   * @param velocity the velocity to run the indexer
+   */
+  public void runIndexer(AngularVelocity velocity) {
+    indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(velocity));
+  }
+
+  /**
+   * Stops the indexer
+   */
+  public void stop() {
+    indexerLeaderMotor.stopMotor();
+  }
+}

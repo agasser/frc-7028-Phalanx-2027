@@ -1,0 +1,133 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 3.458215648854962,
+        "y": 4.712833969465648
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 3.0983778625954197,
+        "y": 4.888568702290076
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 0.8138263358778624,
+        "y": 4.988988549618321
+      },
+      "prevControl": {
+        "x": 1.6925,
+        "y": 4.997356870229007
+      },
+      "nextControl": {
+        "x": 0.5638376729751178,
+        "y": 4.986607705209723
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 1.4749236641263217,
+        "y": 7.415801526713373
+      },
+      "prevControl": {
+        "x": 0.3703053435156347,
+        "y": 7.039227099232457
+      },
+      "nextControl": {
+        "x": 1.7115512111709568,
+        "y": 7.496470008660407
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 0.6046183206148712,
+        "y": 7.541326335873679
+      },
+      "prevControl": {
+        "x": 0.8376194885001953,
+        "y": 7.6319379011624155
+      },
+      "nextControl": {
+        "x": 0.3716171527295453,
+        "y": 7.450714770584941
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 1.59208015267594,
+        "y": 5.265143129766808
+      },
+      "prevControl": {
+        "x": 1.6506583969507496,
+        "y": 7.055963740453832
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": "Tag Team 1"
+    }
+  ],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 1.1,
+      "rotationDegrees": 119.99999999999999
+    },
+    {
+      "waypointRelativePos": 1.621776504298005,
+      "rotationDegrees": 119.99999999999999
+    },
+    {
+      "waypointRelativePos": 2.22922636103152,
+      "rotationDegrees": 180.0
+    },
+    {
+      "waypointRelativePos": 3.140401146131812,
+      "rotationDegrees": 180.0
+    }
+  ],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 0.8312993539124083,
+      "maxWaypointRelativePos": 2.1,
+      "constraints": {
+        "maxVelocity": 1.0,
+        "maxAcceleration": 3.0,
+        "maxAngularVelocity": 540.0,
+        "maxAngularAcceleration": 720.0,
+        "nominalVoltage": 12.0,
+        "unlimited": false
+      }
+    }
+  ],
+  "pointTowardsZones": [],
+  "eventMarkers": [],
+  "globalConstraints": {
+    "maxVelocity": 4.0,
+    "maxAcceleration": 3.0,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": 139.39870535499549
+  },
+  "reversed": false,
+  "folder": "Tag Team",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 127.67359333983042
+  },
+  "useDefaultConstraints": true
+}

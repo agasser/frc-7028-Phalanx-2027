@@ -46,6 +46,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.wpilib.command3.Command;
 import org.wpilib.driverstation.MatchState;
+import org.wpilib.driverstation.RobotState;
 import org.wpilib.hardware.led.LEDPattern;
 import org.wpilib.hardware.led.LEDPattern.GradientType;
 import org.wpilib.math.geometry.Pose2d;
@@ -175,8 +176,11 @@ public class CommandFactory {
     final LEDPattern patternOne = LEDPattern.gradient(GradientType.DISCONTINUOUS, Color.BLACK, Color.ORANGE)
         .scrollAtRelativeVelocity(Percent.per(Second).of(200));
     final LEDPattern patternTwo = patternOne.reversed();
-    return Command.noRequirements(coroutine -> {
-      coroutine.awaitAll(intakeSubsystem.intake(), ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
+    return Command.requiring(intakeSubsystem).executing(coroutine -> {
+      coroutine.fork(intakeSubsystem.intake(), ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
+      while (RobotState.isEnabled()) {
+        coroutine.yield();
+      }
     }).named("Intake Fuel");
   }
 

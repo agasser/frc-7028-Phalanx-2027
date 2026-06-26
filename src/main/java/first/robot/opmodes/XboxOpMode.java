@@ -39,6 +39,10 @@ public class XboxOpMode extends PeriodicOpMode {
         robot.ledSubsystem);
 
     configureButtonBindings();
+  }
+
+  @Override
+  public void start() {
     robot.intakeSubsystem.setDefaultCommand(commandFactory.intakeWithLEDsCommand());
   }
 

@@ -186,8 +186,7 @@ public class IntakeSubsytem extends Mechanism {
         coroutine.yield();
       }
       deployMotor.stopMotor();
-      coroutine.park();
-    }).whenCanceled(this::doStop).named("Intake");
+    }).named("Intake");
   }
 
   /**
@@ -204,7 +203,7 @@ public class IntakeSubsytem extends Mechanism {
       }
       deployMotor.stopMotor();
       coroutine.park();
-    }).whenCanceled(this::doStop).named("Eject");
+    }).named("Eject");
   }
 
   /**
@@ -231,7 +230,7 @@ public class IntakeSubsytem extends Mechanism {
         coroutine.yield();
       }
       doStop();
-    }).whenCanceled(this::doStop).named("Deploy Intake");
+    }).named("Deploy Intake");
   }
 
   /**
@@ -253,7 +252,7 @@ public class IntakeSubsytem extends Mechanism {
       }
       doStop();
       coroutine.park();
-    }).whenCanceled(this::doStop).named("Retract");
+    }).named("Retract");
   }
 
   /**
@@ -300,7 +299,7 @@ public class IntakeSubsytem extends Mechanism {
 
         coroutine.yield();
       }
-    }).whenCanceled(this::doStop).named("Shooting Sequence");
+    }).named("Shooting Sequence");
 
   }
 

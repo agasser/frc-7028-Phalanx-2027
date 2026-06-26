@@ -72,59 +72,49 @@ public class FeederSubsystem extends Mechanism {
   }
 
   /**
-   * Spins the feeder to feed the shooter
+   * Creates a command to spin the feeder to feed the shooter
+   * 
+   * @return new command
    */
-  public void feedShooter() {
-    feederLeaderMotor.setControl(feederVelocityTorque.withVelocity(FEEDER_FEED_VELOCITY));
-  }
-
-  public Command feedShooterAsCommand() {
+  public Command feedShooter() {
     return run(coroutine -> {
-      feedShooter();
+      feederLeaderMotor.setControl(feederVelocityTorque.withVelocity(FEEDER_FEED_VELOCITY));
       coroutine.park();
     }).named("Feed Shooter");
   }
 
   /**
-   * Run the feeder at the set velocity. Used for tuning, should not be used for normal operation.
+   * Returns a command to run the feeder at the set velocity. Used for tuning, should not be used for normal operation.
    * 
    * @param velocity the velocity to run the feeder
+   * 
+   * @returns new command
    */
-  public void runFeeder(AngularVelocity velocity) {
-    feederLeaderMotor.setControl(feederVelocityTorque.withVelocity(velocity));
-  }
-
-  public Command runFeederCommand(AngularVelocity velocity) {
+  public Command runFeeder(AngularVelocity velocity) {
     return run(coroutine -> {
-      runFeeder(velocity);
+      feederLeaderMotor.setControl(feederVelocityTorque.withVelocity(velocity));
       coroutine.park();
     }).named("Run feeder at " + velocity);
   }
 
   /**
-   * Spins the feeder backward to eject or unjam fuel
+   * Returns a command that spins the feeder backward to eject or unjam fuel
+   * 
+   * @return new command
    */
-  public void eject() {
-    feederLeaderMotor.setControl(feederVelocityTorque.withVelocity(FEEDER_EJECT_VELOCITY));
-  }
-
-  public Command ejectCommand() {
+  public Command eject() {
     return run(coroutine -> {
-      eject();
+      feederLeaderMotor.setControl(feederVelocityTorque.withVelocity(FEEDER_EJECT_VELOCITY));
       coroutine.park();
     }).named("Eject");
   }
 
   /**
-   * Stops the feeder motor
+   * Returns a command to stop the feeder motor
    */
-  public void stop() {
-    feederLeaderMotor.stopMotor();
-  }
-
-  public Command stopCommand() {
+  public Command stop() {
     return run(coroutine -> {
-      stop();
+      feederLeaderMotor.stopMotor();
       coroutine.park();
     }).named("Stop");
   }

@@ -162,12 +162,12 @@ public class CommandFactory {
   public Command ejectCommand() {
     return Command.noRequirements(coroutine -> {
       coroutine.awaitAll(
-          intakeSubsystem.ejectCommand(),
-            indexerSubsystem.ejectCommand(),
-            feederSubsystem.ejectCommand(),
-            shooterSubsystem.ejectCommand(),
-            ledSubsystem.runPatternAsCommand(
-                LEDPattern.rainbow(255, 255).scrollAtRelativeVelocity(Percent.per(Second).of(200))));
+          intakeSubsystem.eject(),
+            indexerSubsystem.eject(),
+            feederSubsystem.eject(),
+            shooterSubsystem.eject(),
+            ledSubsystem
+                .runPattern(LEDPattern.rainbow(255, 255).scrollAtRelativeVelocity(Percent.per(Second).of(200))));
     }).named("Eject");
   }
 
@@ -176,8 +176,7 @@ public class CommandFactory {
         .scrollAtRelativeVelocity(Percent.per(Second).of(200));
     final LEDPattern patternTwo = patternOne.reversed();
     return Command.noRequirements(coroutine -> {
-      coroutine
-          .awaitAll(intakeSubsystem.intakeCommand(), ledSubsystem.runPatternOnHalvesAsCommand(patternOne, patternTwo));
+      coroutine.awaitAll(intakeSubsystem.intake(), ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
     }).named("Intake Fuel");
   }
 
@@ -225,19 +224,19 @@ public class CommandFactory {
 
           // Get ready to shoot
           coroutine.fork(
-              intakeSubsystem.stopCommand(),
-                feederSubsystem.stopCommand(),
-                indexerSubsystem.stopCommand(),
-                shooterSubsystem.runFlywheelAtVelocityCommand(flywheelVelocity));
+              intakeSubsystem.stop(),
+                feederSubsystem.stop(),
+                indexerSubsystem.stop(),
+                shooterSubsystem.runFlywheel(flywheelVelocity));
 
           // Wait until the flywheel is up to speed
-          coroutine.waitUntil(shooterSubsystem::isFlywheelAtSpeed);
+          coroutine.waitUntil(shooterSubsystem::isFlywheelAtVelocity);
           coroutine.wait(Milliseconds.of(6.0));
 
           // Shoot
-          coroutine.fork(feederSubsystem.runFeederCommand(feederVelocity));
+          coroutine.fork(feederSubsystem.runFeeder(feederVelocity));
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(indexerSubsystem.runIndexerCommand(indexerVelocity));
+          coroutine.fork(indexerSubsystem.runIndexer(indexerVelocity));
           coroutine.wait(Milliseconds.of(12.0));
           coroutine.fork(
               intakeSubsystem.shootingSequence(
@@ -273,22 +272,22 @@ public class CommandFactory {
         .executing(coroutine -> {
           // Get ready to shoot
           coroutine.fork(
-              intakeSubsystem.stopCommand(),
-                feederSubsystem.stopCommand(),
-                indexerSubsystem.stopCommand(),
-                shooterSubsystem.runFlywheelAtVelocityCommand(shooterAngularVelocity),
+              intakeSubsystem.stop(),
+                feederSubsystem.stop(),
+                indexerSubsystem.stop(),
+                shooterSubsystem.runFlywheel(shooterAngularVelocity),
                 drivetrainSubsystem.applyRequest(() -> swerveBrakeRequest),
-                ledSubsystem.offAscommand());
+                ledSubsystem.off());
 
           // Wait until the flywheel is up to speed
-          coroutine.waitUntil(shooterSubsystem::isFlywheelAtSpeed);
+          coroutine.waitUntil(shooterSubsystem::isFlywheelAtVelocity);
 
           // Shoot, using staggered mechanism starts
-          coroutine.fork(ledSubsystem.runPatternOnHalvesAsCommand(patternOne, patternTwo));
+          coroutine.fork(ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
           coroutine.wait(Milliseconds.of(6.0));
-          coroutine.fork(feederSubsystem.feedShooterAsCommand());
+          coroutine.fork(feederSubsystem.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(indexerSubsystem.feedShooterAsCommand());
+          coroutine.fork(indexerSubsystem.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
           coroutine.fork(intakeSubsystem.shootingSequence());
           while (!RobotController.isBrownedOut()) {
@@ -327,18 +326,16 @@ public class CommandFactory {
 
           // Fork the commands to prepare to shoot
           coroutine.fork(
-              intakeSubsystem.stopCommand(),
-                feederSubsystem.stopCommand(),
-                indexerSubsystem.stopCommand(),
-                shooterSubsystem.runFlywheelAtVelocityCommand(() -> shootingState.shooterSpeed),
+              intakeSubsystem.stop(),
+                feederSubsystem.stop(),
+                indexerSubsystem.stop(),
+                shooterSubsystem.runFlywheel(() -> shootingState.shooterSpeed),
                 drivetrainSubsystem.pointAtTarget(targetTranslationSelector, SHOOTER_OFFSET_ANGLE),
-                ledSubsystem.ledSegmentsAsCommand(
-                    Color.GREEN,
-                      () -> shootingState.isAimReady,
-                      shooterSubsystem::isFlywheelAtSpeed));
+                ledSubsystem
+                    .ledSegments(Color.GREEN, () -> shootingState.isAimReady, shooterSubsystem::isFlywheelAtVelocity));
 
           // Wait until we're aimed and the shooter is ready
-          while (!shootingState.isAimReady || !shooterSubsystem.isFlywheelAtSpeed()) {
+          while (!shootingState.isAimReady || !shooterSubsystem.isFlywheelAtVelocity()) {
             // Calculate target information and update shooting state for forked commands
             var robotPose = robotPoseSupplier.get();
             var targetTranslation = targetTranslationSelector.apply(robotPoseSupplier.get().getTranslation());
@@ -354,11 +351,11 @@ public class CommandFactory {
           }
 
           // Ready! Shoot, using staggered mechanism starts
-          coroutine.fork(ledSubsystem.runPatternOnHalvesAsCommand(patternOne, patternTwo));
+          coroutine.fork(ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
           coroutine.wait(Milliseconds.of(6.0));
-          coroutine.fork(feederSubsystem.feedShooterAsCommand());
+          coroutine.fork(feederSubsystem.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(indexerSubsystem.feedShooterAsCommand());
+          coroutine.fork(indexerSubsystem.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
           coroutine.fork(intakeSubsystem.shootingSequence());
         })

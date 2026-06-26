@@ -62,55 +62,94 @@ public class LEDSubsystem extends Mechanism {
   }
 
   /**
-   * This will create a command that runs a pattern on each LED strip individually. This pattern will automatically
-   * update as long as the the command is running, so this method only needs to be called one time for an animation. The
-   * command will turn the LEDs off when it is completed.
+   * This will create a command that runs a pattern on each LED strip individually.
    * 
    * @param pattern Pattern to set on each LED strip from bottom to top
    * @return A command that will run the pattern on each LED strip continuously
    */
-  public Command runPatternAsCommand(LEDPattern pattern) {
+  public Command runPattern(LEDPattern pattern) {
     return run((coroutine) -> {
+      doOff();
       while (true) {
-        runPattern(pattern);
-        coroutine.wait(Milliseconds.of(20)); // TODO this could be adjusted, but for now it maintains the old behavior
-                                             // even if the robot period speeds up
+        doRunPattern(pattern);
+        coroutine.yield();
       }
-    }).whenCanceled(this::off).named("Run pattern: " + pattern);
+    }).named("Run pattern: " + pattern);
   }
 
   /**
-   * Applies the pattern to each LED strip individually. This will only happen once. If running an animation, this
-   * method must be called continuously to update the led states.
-   * 
-   * @param pattern Pattern to set on each LED strip from bottom to top
-   */
-  private void runPattern(LEDPattern pattern) {
-    pattern.applyTo(frontStripBuffer);
-    pattern.applyTo(backStripBuffer);
-  }
-
-  /**
-   * Applies the pattern to each half of each LED strip individually. This will only happen once. If running an
-   * animation, this method must be called continuously to update the led states.
+   * Creates a new command that applies the pattern to each half of each LED strip individually.
    * 
    * @param halfOnePattern Pattern to set on the first half of each LED strip
    * @param halfTwoPattern Pattern to set on the second half of each LED strip
    */
-  private void runPatternOnHalves(LEDPattern halfOnePattern, LEDPattern halfTwoPattern) {
-    halfOnePattern.applyTo(halfOneFront);
-    halfTwoPattern.applyTo(halfTwoFront);
-    halfOnePattern.applyTo(halfOneBack);
-    halfTwoPattern.applyTo(halfTwoBack);
-  }
-
-  public Command runPatternOnHalvesAsCommand(LEDPattern halfOnePattern, LEDPattern halfTwoPattern) {
+  public Command runPatternOnHalves(LEDPattern halfOnePattern, LEDPattern halfTwoPattern) {
     return run(coroutine -> {
+      doOff();
       while (true) {
-        runPatternOnHalves(halfOnePattern, halfTwoPattern);
+        doRunPatternOnHalves(halfOnePattern, halfTwoPattern);
         coroutine.yield();
       }
-    }).whenCanceled(this::off).named("Run pattern no halves: " + halfOnePattern + " - " + halfTwoPattern);
+    }).named("Run pattern no halves: " + halfOnePattern + " - " + halfTwoPattern);
+  }
+
+  /**
+   * Creates a new command that lights up the LEDs in segments. Useful for indicating ready state, for example.
+   *
+   * @param color the color of the segments when lit
+   * @param segmentValues array of boolean suppliers. The strip will be split into segments one segment for each element
+   *          of the array.
+   */
+  public Command ledSegments(Color color, BooleanSupplier... segmentValues) {
+    return runPattern((reader, writer) -> {
+      final int ledsPerStatus = reader.getLength() / segmentValues.length;
+      int ledIndex = 0;
+      for (int segmentId = 0; segmentId < segmentValues.length; segmentId++) {
+        for (; ledIndex < (ledsPerStatus * (segmentId + 1)); ledIndex++) {
+          writer.setLED(ledIndex, segmentValues[segmentId].getAsBoolean() ? color : Color.BLACK);
+        }
+      }
+    });
+  }
+
+  /**
+   * Creates this mechanisms default command that indicates robot state.
+   * 
+   * @return new command
+   */
+  public Command defaultCommand() {
+    final LEDPattern dsDetachedPattern = candyCane(Color.DARK_RED, Color.INDIAN_RED, Seconds.of(0.5));
+    final LEDPattern disabledPattern = gradient(GradientType.CONTINUOUS, Color.BLUE, Color.ORANGE)
+        .scrollAtRelativeVelocity(Percent.per(Second).of(75));
+    final LEDPattern enabledPatternOne = solid(Color.BLUE);
+    final LEDPattern enabledPatternTwo = solid(Color.ORANGE);
+
+    return run(coroutine -> {
+      doOff();
+      while (true) {
+        if (!RobotState.isDSAttached()) {
+          doRunPattern(dsDetachedPattern);
+        } else if (RobotState.isDisabled()) {
+          doRunPattern(disabledPattern);
+        } else {
+          if (Timer.getTimestamp() % 1 < 0.5) {
+            doRunPatternOnHalves(enabledPatternOne, enabledPatternTwo);
+          } else {
+            doRunPatternOnHalves(enabledPatternTwo, enabledPatternOne);
+          }
+        }
+        coroutine.yield();
+      }
+    }).named("Default Command");
+  }
+
+  /**
+   * Creates a new command to turn the LEDs off.
+   * 
+   * @return new command
+   */
+  public Command off() {
+    return runPattern(kOff);
   }
 
   /**
@@ -135,35 +174,12 @@ public class LEDSubsystem extends Mechanism {
   }
 
   /**
-   * Lights up the LEDs in segments. Useful for indicating ready state, for example.
-   *
-   * @param color the color of the segments when lit
-   * @param segmentValues array of boolean suppliers. The strip will be split into segments one segment for each element
-   *          of the array.
-   */
-  public Command ledSegmentsAsCommand(Color color, BooleanSupplier... segmentValues) {
-    return runPatternAsCommand((reader, writer) -> {
-      final int ledsPerStatus = reader.getLength() / segmentValues.length;
-      int ledIndex = 0;
-      for (int segmentId = 0; segmentId < segmentValues.length; segmentId++) {
-        for (; ledIndex < (ledsPerStatus * (segmentId + 1)); ledIndex++) {
-          writer.setLED(ledIndex, segmentValues[segmentId].getAsBoolean() ? color : Color.BLACK);
-        }
-      }
-    });
-  }
-
-  /**
    * Turns off the LEDs
    */
-  private void off() {
+  private void doOff() {
     LEDPattern pattern = LEDPattern.kOff;
     pattern.applyTo(frontStripBuffer);
     pattern.applyTo(backStripBuffer);
-  }
-
-  public Command offAscommand() {
-    return runPatternAsCommand(kOff);
   }
 
   public Command bootAnimation() {
@@ -172,10 +188,10 @@ public class LEDSubsystem extends Mechanism {
       int blipIndex = -1;
       boolean done = false;
 
-      off();
+      doOff();
       while (!done && RobotState.isDisabled()) {
         final int currentBlipIndex = blipIndex;
-        runPattern((reader, writer) -> {
+        doRunPattern((reader, writer) -> {
           for (int index = 0; index < reader.getLength(); index++) {
             if (index <= currentBlipIndex && index >= currentBlipIndex - (BLIP_SIZE - 1)) {
               writer.setLED(index, Color.ORANGE);
@@ -192,29 +208,28 @@ public class LEDSubsystem extends Mechanism {
     }).named("Boot Animation");
   }
 
-  public Command defaultCommand() {
-    final LEDPattern dsDetachedPattern = candyCane(Color.DARK_RED, Color.INDIAN_RED, Seconds.of(0.5));
-    final LEDPattern disabledPattern = gradient(GradientType.CONTINUOUS, Color.BLUE, Color.ORANGE)
-        .scrollAtRelativeVelocity(Percent.per(Second).of(75));
-    final LEDPattern enabledPatternOne = solid(Color.BLUE);
-    final LEDPattern enabledPatternTwo = solid(Color.ORANGE);
-
-    return run(coroutine -> {
-      while (true) {
-        if (!RobotState.isDSAttached()) {
-          runPattern(dsDetachedPattern);
-        } else if (RobotState.isDisabled()) {
-          runPattern(disabledPattern);
-        } else {
-          if (Timer.getTimestamp() % 1 < 0.5) {
-            runPatternOnHalves(enabledPatternOne, enabledPatternTwo);
-          } else {
-            runPatternOnHalves(enabledPatternTwo, enabledPatternOne);
-          }
-        }
-        coroutine.yield();
-      }
-    }).named("Default Command");
+  /**
+   * Applies the pattern to each LED strip individually. This will only happen once. If running an animation, this
+   * method must be called continuously to update the led states.
+   * 
+   * @param pattern Pattern to set on each LED strip from bottom to top
+   */
+  private void doRunPattern(LEDPattern pattern) {
+    pattern.applyTo(frontStripBuffer);
+    pattern.applyTo(backStripBuffer);
   }
 
+  /**
+   * Applies the pattern to each half of each LED strip individually. This will only happen once. If running an
+   * animation, this method must be called continuously to update the led states.
+   * 
+   * @param halfOnePattern Pattern to set on the first half of each LED strip
+   * @param halfTwoPattern Pattern to set on the second half of each LED strip
+   */
+  private void doRunPatternOnHalves(LEDPattern halfOnePattern, LEDPattern halfTwoPattern) {
+    halfOnePattern.applyTo(halfOneFront);
+    halfTwoPattern.applyTo(halfTwoFront);
+    halfOnePattern.applyTo(halfOneBack);
+    halfTwoPattern.applyTo(halfTwoBack);
+  }
 }

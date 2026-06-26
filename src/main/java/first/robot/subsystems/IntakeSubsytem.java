@@ -20,6 +20,7 @@ import static first.robot.Constants.IntakeConstants.DEPLOY_TOLERANCE;
 import static first.robot.Constants.IntakeConstants.DEVICE_ID_DEPLOY_MOTOR;
 import static first.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_FOLLOWER;
 import static first.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_MOTOR;
+import static first.robot.Constants.IntakeConstants.POSE_DEPLOYED;
 import static first.robot.Constants.IntakeConstants.POSE_RETRACTED;
 import static first.robot.Constants.IntakeConstants.POTENTIOMETER_FULL_RANGE;
 import static first.robot.Constants.IntakeConstants.POTENTIOMETER_OFFSET;
@@ -40,6 +41,7 @@ import static first.robot.Constants.ShootingConstants.UNJAM_DURATION;
 import static org.wpilib.units.Units.Hertz;
 import static org.wpilib.units.Units.Rotations;
 import static org.wpilib.units.Units.Seconds;
+import static org.wpilib.units.Units.Value;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
@@ -60,6 +62,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.rotation.AnalogPotentiometer;
@@ -167,22 +170,7 @@ public class IntakeSubsytem extends Mechanism {
           deployMotor.getSupplyCurrent(false));
     // Turn unused signals down, but not off, for logging
     deployMotor.optimizeBusUtilization();
-  }
-
-  // TODO figure out where to put this
-  // @Override
-  // public void periodic() {
-  // BaseStatusSignal.refreshAll(deployPositionSignal, deployVelocitySignal);
-  // // Update the intake pose for AdvantageScope
-  // Angle deployPosition = BaseStatusSignal.getLatencyCompensatedValue(deployPositionSignal, deployVelocitySignal);
-  // currentPose3d = POSE_RETRACTED.interpolate(POSE_DEPLOYED, deployPosition.div(DEPLOY_FORWARD_LIMIT).in(Value));
-  // }
-
-  /**
-   * Runs the intake rollers to intake fuel
-   */
-  public void runIntake() {
-    rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_INTAKE_VELOCITY));
+    Scheduler.getDefault().addPeriodic(this::periodic);
   }
 
   /**
@@ -190,23 +178,16 @@ public class IntakeSubsytem extends Mechanism {
    * 
    * @return new command
    */
-  public Command intakeCommand() {
+  public Command intake() {
     return run(coroutine -> {
-      deploy();
-      runIntake();
+      doDeploy();
+      rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_INTAKE_VELOCITY));
       while (!isDeployed()) {
         coroutine.yield();
       }
-      stopDeploy();
+      deployMotor.stopMotor();
       coroutine.park();
-    }).whenCanceled(this::stop).named("Intake");
-  }
-
-  /**
-   * Reverses the intake rollers to eject or unjam fuel
-   */
-  public void eject() {
-    rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_EJECT_VELOCITY));
+    }).whenCanceled(this::doStop).named("Intake");
   }
 
   /**
@@ -214,88 +195,128 @@ public class IntakeSubsytem extends Mechanism {
    * 
    * @return new command
    */
-  public Command ejectCommand() {
+  public Command eject() {
     return run(coroutine -> {
-      deploy();
-      eject();
+      doDeploy();
+      rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_EJECT_VELOCITY));
       while (!isDeployed()) {
         coroutine.yield();
       }
-      stopDeploy();
+      deployMotor.stopMotor();
       coroutine.park();
-    }).whenCanceled(this::stop).named("Eject");
+    }).whenCanceled(this::doStop).named("Eject");
   }
 
   /**
-   * Deploys the intake
-   */
-  public void deploy() {
-    deployMotor.setControl(
-        deployProfiledControl.withPosition(DEPLOYED_POSITION)
-            .withLimitReverseMotion(getPotentiometerValue() >= DEPLOYED_POSITION.in(Rotations)));
-    if (RobotBase.isSimulation()) {
-      deployMotor.setPosition(DEPLOYED_POSITION);
-    }
-  }
-
-  /**
-   * Retracts the intake
-   */
-  public void retract() {
-    deployMotor.setControl(
-        deployProfiledControl.withPosition(RETRACTED_POSITION)
-            .withLimitReverseMotion(getPotentiometerValue() <= RETRACTED_POSITION.in(Rotations)));
-    if (RobotBase.isSimulation()) {
-      deployMotor.setPosition(RETRACTED_POSITION);
-    }
-  }
-
-  /**
-   * Retracts the intake with a set current to help feed fuel into the feeder while shooting
+   * Returns a new command to stop all intake motion
    * 
-   * @param current The current to apply to the deploy motor
+   * @return new command
    */
-  public void retractForShooting(Current current) {
-    deployMotor.setControl(deployTorqueControl.withOutput(current));
-    if (RobotBase.isSimulation()) {
-      deployMotor.setPosition(RETRACTED_POSITION);
-    }
-  }
-
-  /**
-   * Spins the intake rollers at a velocity to help feed fuel into the feeder while shooting
-   */
-  public void runIntakeForShooting() {
-    rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_INTAKE_SHOOTING_VELOCITY));
-  }
-
-  /**
-   * Stops the intake rollers
-   */
-  public void stopIntaking() {
-    rollerLeaderMotor.stopMotor();
-  }
-
-  /**
-   * Stops the deploy motor
-   */
-  public void stopDeploy() {
-    deployMotor.stopMotor();
-  }
-
-  /**
-   * Stops all intake motion
-   */
-  public void stop() {
-    stopIntaking();
-    stopDeploy();
-  }
-
-  public Command stopCommand() {
+  public Command stop() {
     return run(coroutine -> {
-      stop();
+      doStop();
       coroutine.park();
     }).named("Stop");
+  }
+
+  /**
+   * Creates a command to deploy the intake. This command will turn off the intake and exit once the intake is deployed.
+   * 
+   * @return new command
+   */
+  public Command deploy() {
+    return run(coroutine -> {
+      doDeploy();
+      while (!isDeployed()) {
+        coroutine.yield();
+      }
+      doStop();
+    }).whenCanceled(this::doStop).named("Deploy Intake");
+  }
+
+  /**
+   * Creates a new command to retract the intake and turn it off once retracted. This command will run until
+   * interrupted.
+   * 
+   * @return new command
+   */
+  public Command retract() {
+    return run(coroutine -> {
+      deployMotor.setControl(
+          deployProfiledControl.withPosition(RETRACTED_POSITION)
+              .withLimitReverseMotion(getPotentiometerValue() <= RETRACTED_POSITION.in(Rotations)));
+      if (RobotBase.isSimulation()) {
+        deployMotor.setPosition(RETRACTED_POSITION);
+      }
+      while (!isRetracted()) {
+        coroutine.yield();
+      }
+      doStop();
+      coroutine.park();
+    }).whenCanceled(this::doStop).named("Retract");
+  }
+
+  /**
+   * Returns a new command to run the shooting sequence with tunable unjam parameters
+   * 
+   * @param retractDelay the time to wait before retracting the intake
+   * @param retractCurrent the current to use when retracting the intake
+   * @param jamThreshold the velocity below which we consider the intake to be jammed
+   * @param unjamDuration the duration for which to unjamming
+   * @param retractedThreshold the deploy position below which we consider the intake retracted and can stop
+   * 
+   * @return new command
+   */
+  public Command shootingSequence(
+      Time debounceTime,
+      Time retractDelay,
+      Current retractCurrent,
+      AngularVelocity jamThreshold,
+      Time unjamDuration,
+      Angle retractedThreshold) {
+
+    return run(coroutine -> {
+      Debouncer jamDebouncer = new Debouncer(debounceTime.in(Seconds));
+      runIntakeForShooting();
+      coroutine.wait(retractDelay);
+      retractForShooting(retractCurrent);
+      while (true) {
+        // Check if the intake is in
+        if (getDeployPosition().lte(retractedThreshold)) {
+          deployMotor.stopMotor();
+          coroutine.park(); // All done, but leave the rollers running until canceled
+        }
+
+        // Check if the intake is jammed
+        boolean isJammed = deployVelocitySignal.refresh().getValue().gt(jamThreshold);
+        if (jamDebouncer.calculate(isJammed)) {
+          // Intake is jammed, jiggle it for unjamDuration
+          doDeploy();
+          coroutine.wait(unjamDuration);
+
+          jamDebouncer.calculate(false);
+          retractForShooting(retractCurrent);
+        }
+
+        coroutine.yield();
+      }
+    }).whenCanceled(this::doStop).named("Shooting Sequence");
+
+  }
+
+  /**
+   * Returns a new command to run the shooting sequence with comp parameters
+   * 
+   * @return new command
+   */
+  public Command shootingSequence() {
+    return shootingSequence(
+        JAM_DEBOUNCE_TIME,
+          RETRACT_INTAKE_DELAY,
+          DEPLOY_SHOOTING_CURRENT,
+          JAM_THRESHOLD,
+          UNJAM_DURATION,
+          RETRACTED_THRESHOLD);
   }
 
   /**
@@ -314,7 +335,7 @@ public class IntakeSubsytem extends Mechanism {
    * 
    * @return current deploy position
    */
-  public Angle getDeployPosition() {
+  private Angle getDeployPosition() {
     // Signals refreshed in periodic
     return BaseStatusSignal.getLatencyCompensatedValue(deployPositionSignal, deployVelocitySignal);
   }
@@ -333,15 +354,6 @@ public class IntakeSubsytem extends Mechanism {
   }
 
   /**
-   * Gets the angular velocity of the deploy motor.
-   * 
-   * @return the angular velocity of the deploy motor
-   */
-  public AngularVelocity getDeployVelocity() {
-    return deployVelocitySignal.refresh().getValue();
-  }
-
-  /**
    * Gets the pose of the intake for AdvantageScope.
    * <p>
    * <strong>This is not intended for use in robot code.</strong>
@@ -354,36 +366,11 @@ public class IntakeSubsytem extends Mechanism {
     return currentPose3d;
   }
 
-  /**
-   * Creates a command to deploy the intake. This command will turn off the intake and exit once the intake is deployed.
-   * 
-   * @return new command
-   */
-  public Command deployIntakeCommand() {
-    return run(coroutine -> {
-      deploy();
-      while (!isDeployed()) {
-        coroutine.yield();
-      }
-      stop();
-    }).whenCanceled(this::stop).named("Deploy Intake");
-  }
-
-  /**
-   * Creates a new command to retract the intake and turn it off once retracted. This command will run until
-   * interrupted.
-   * 
-   * @return new command
-   */
-  public Command retractIntakeCommand() {
-    return run(coroutine -> {
-      retract();
-      while (!isRetracted()) {
-        coroutine.yield();
-      }
-      stop();
-      coroutine.park();
-    }).whenCanceled(this::stop).named("Retract");
+  private void periodic() {
+    BaseStatusSignal.refreshAll(deployPositionSignal, deployVelocitySignal);
+    // Update the intake pose for AdvantageScope
+    Angle deployPosition = BaseStatusSignal.getLatencyCompensatedValue(deployPositionSignal, deployVelocitySignal);
+    currentPose3d = POSE_RETRACTED.interpolate(POSE_DEPLOYED, deployPosition.div(DEPLOY_FORWARD_LIMIT).in(Value));
   }
 
   /**
@@ -396,60 +383,42 @@ public class IntakeSubsytem extends Mechanism {
   }
 
   /**
-   * Runs one iteration of the intake shooting sequence with tunable unjam parameters. This should be called repeatedly
-   * (e.g. in command execute())
-   * 
-   * @param retractDelay the time to wait before retracting the intake
-   * @param retractCurrent the current to use when retracting the intake
-   * @param jamThreshold the velocity below which we consider the intake to be jammed
-   * @param unjamDuration the duration for which to unjamming
-   * @param retractedThreshold the deploy position below which we consider the intake retracted and can stop
+   * Deploys the intake
    */
-  public Command shootingSequence(
-      Time debounceTime,
-      Time retractDelay,
-      Current retractCurrent,
-      AngularVelocity jamThreshold,
-      Time unjamDuration,
-      Angle retractedThreshold) {
-
-    return run(coroutine -> {
-      Debouncer jamDebouncer = new Debouncer(debounceTime.in(Seconds));
-      runIntakeForShooting();
-      coroutine.wait(retractDelay);
-      retractForShooting(retractCurrent);
-      while (true) {
-        // Check if the intake is in
-        if (getDeployPosition().lte(retractedThreshold)) {
-          stopDeploy();
-          coroutine.park(); // All done, but leave the rollers running until canceled
-        }
-
-        // Check if the intake is jammed
-        boolean isJammed = getDeployVelocity().gt(jamThreshold);
-        if (jamDebouncer.calculate(isJammed)) {
-          // Intake is jammed, jiggle it for unjamDuration
-          deploy();
-          coroutine.wait(unjamDuration);
-
-          jamDebouncer.calculate(false);
-          retractForShooting(retractCurrent);
-        }
-
-        coroutine.yield();
-      }
-    }).whenCanceled(this::stop).named("Shooting Sequence");
-
+  private void doDeploy() {
+    deployMotor.setControl(
+        deployProfiledControl.withPosition(DEPLOYED_POSITION)
+            .withLimitReverseMotion(getPotentiometerValue() >= DEPLOYED_POSITION.in(Rotations)));
+    if (RobotBase.isSimulation()) {
+      deployMotor.setPosition(DEPLOYED_POSITION);
+    }
   }
 
-  public Command shootingSequence() {
-    return shootingSequence(
-        JAM_DEBOUNCE_TIME,
-          RETRACT_INTAKE_DELAY,
-          DEPLOY_SHOOTING_CURRENT,
-          JAM_THRESHOLD,
-          UNJAM_DURATION,
-          RETRACTED_THRESHOLD);
+  /**
+   * Retracts the intake with a set current to help feed fuel into the feeder while shooting
+   * 
+   * @param current The current to apply to the deploy motor
+   */
+  private void retractForShooting(Current current) {
+    deployMotor.setControl(deployTorqueControl.withOutput(current));
+    if (RobotBase.isSimulation()) {
+      deployMotor.setPosition(RETRACTED_POSITION);
+    }
+  }
+
+  /**
+   * Spins the intake rollers at a velocity to help feed fuel into the feeder while shooting
+   */
+  private void runIntakeForShooting() {
+    rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_INTAKE_SHOOTING_VELOCITY));
+  }
+
+  /**
+   * Stops all intake motion
+   */
+  private void doStop() {
+    rollerLeaderMotor.stopMotor();
+    deployMotor.stopMotor();
   }
 
 }

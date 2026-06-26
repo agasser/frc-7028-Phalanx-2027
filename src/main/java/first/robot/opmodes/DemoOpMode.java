@@ -53,11 +53,11 @@ public class DemoOpMode extends PeriodicOpMode {
 
     leftJoystick.button(4).onTrue(commandFactory.intakeWithLEDsCommand());
 
-    leftJoystick.button(3).onTrue(robot.intakeSubsystem.stopCommand());
+    leftJoystick.button(3).onTrue(robot.intakeSubsystem.stop());
 
-    leftJoystick.trigger().onTrue(robot.intakeSubsystem.deployIntakeCommand());
+    leftJoystick.trigger().onTrue(robot.intakeSubsystem.deploy());
 
-    leftJoystick.button(2).onTrue(robot.intakeSubsystem.retractIntakeCommand());
+    leftJoystick.button(2).onTrue(robot.intakeSubsystem.retract());
 
     leftJoystick.povDown().whileTrue(commandFactory.ejectCommand());
 

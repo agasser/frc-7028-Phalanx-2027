@@ -66,6 +66,11 @@ public class Robot extends OpModeRobot {
 
     ledSubsystem.setDefaultCommand(ledSubsystem.defaultCommand());
     Scheduler.getDefault().schedule(ledSubsystem.bootAnimation());
+
+    feederSubsystem.setDefaultCommand(feederSubsystem.stop());
+    indexerSubsystem.setDefaultCommand(indexerSubsystem.stop());
+    shooterSubsystem.setDefaultCommand(shooterSubsystem.stop());
+    intakeSubsystem.setDefaultCommand(intakeSubsystem.stop());
   }
 
   @Override

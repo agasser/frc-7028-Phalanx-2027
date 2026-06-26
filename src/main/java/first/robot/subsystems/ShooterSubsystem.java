@@ -105,85 +105,62 @@ public class ShooterSubsystem extends Mechanism {
   }
 
   /**
-   * Commands flywheel to a velocity
-   *
-   * @param targetSpeed desired flywheel velocity
-   */
-  public void setFlywheelSpeed(AngularVelocity flywheelVelocity) {
-    flywheelLeaderMotor.setControl(flywheelVelocityRequest.withVelocity(flywheelVelocity));
-  }
-
-  /**
    * Creates a new command that runs the flywheel at a velocity. The command runs until canceled.
    * 
    * @param flywheelVelocity
    * @return new command
    */
-  public Command runFlywheelAtVelocityCommand(AngularVelocity flywheelVelocity) {
+  public Command runFlywheel(AngularVelocity flywheelVelocity) {
     return run(coroutine -> {
-      setFlywheelSpeed(flywheelVelocity);
+      flywheelLeaderMotor.setControl(flywheelVelocityRequest.withVelocity(flywheelVelocity));
       coroutine.park();
     }).named("Run at " + flywheelVelocity);
   }
 
   /**
-   * Creates a new command that runs the flywheel at a velocity. The command runs until canceled.
+   * Creates a new command that runs the flywheel at a velocity provided by a supplier. The command runs until canceled.
    * 
    * @param flywheelVelocity velocity supplier
    * @return new command
    */
-  public Command runFlywheelAtVelocityCommand(Supplier<AngularVelocity> flywheelVelocity) {
+  public Command runFlywheel(Supplier<AngularVelocity> flywheelVelocity) {
     return run(coroutine -> {
-      setFlywheelSpeed(flywheelVelocity.get());
+      flywheelLeaderMotor.setControl(flywheelVelocityRequest.withVelocity(flywheelVelocity.get()));
       coroutine.park();
     }).named("Run at supplied velocity");
   }
 
   /**
-   * Spins the flywheel in reverse to eject balls or unjam fuel
+   * Creates a new command that spins the flywheel in reverse to eject balls or unjam fuel
+   * 
+   * @return new command
    */
-  public void eject() {
-    flywheelLeaderMotor.setControl(flywheelVelocityRequest.withVelocity(FLYWHEEL_EJECT_VELOCITY));
-  }
-
-  public Command ejectCommand() {
+  public Command eject() {
     return run(coroutine -> {
-      eject();
+      flywheelLeaderMotor.setControl(flywheelVelocityRequest.withVelocity(FLYWHEEL_EJECT_VELOCITY));
       coroutine.park();
     }).named("Eject");
   }
 
   /**
-   * Stops the shooter
+   * Creates a new command that stops the shooter
+   * 
+   * @return new command
    */
-  public void stop() {
-    flywheelLeaderMotor.stopMotor();
-  }
-
-  public Command stopCommand() {
+  public Command stop() {
     return run(coroutine -> {
-      stop();
+      flywheelLeaderMotor.stopMotor();
       coroutine.park();
     }).named("Stop");
   }
 
   /**
-   * Returns current flywheel velocity
-   *
-   * @return flywheel angular velocity
-   */
-  public AngularVelocity getFlywheelVelocity() {
-    BaseStatusSignal.refreshAll(flywheelVelocity, flywheelAcceleration);
-    return BaseStatusSignal.getLatencyCompensatedValue(flywheelVelocity, flywheelAcceleration);
-  }
-
-  /**
-   * Returns whether flywheel speed is within tolerance of the active request
+   * Returns whether flywheel velocity is within tolerance of the active request
    * 
-   * @return true if flywheel is at speed, otherwise false
+   * @return true if flywheel is at the target velocity, otherwise false
    */
   @Logged
-  public boolean isFlywheelAtSpeed() {
+  public boolean isFlywheelAtVelocity() {
     if (RobotBase.isSimulation()) {
       return true;
     } else {

@@ -77,59 +77,51 @@ public class IndexerSubsystem extends Mechanism {
   }
 
   /**
-   * Spins the indexer forward to feed the shooter
+   * Creates a command that spins the indexer forward to feed the shooter
+   * 
+   * @return new command
    */
-  public void feedShooter() {
-    indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(INDEXER_FEED_VELOCITY));
-  }
-
-  public Command feedShooterAsCommand() {
+  public Command feedShooter() {
     return run(coroutine -> {
-      feedShooter();
+      indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(INDEXER_FEED_VELOCITY));
       coroutine.park();
     }).named("Feed Shooter");
   }
 
   /**
-   * Spins the indexer in reverse to eject or unjam fuel
+   * Returns a command that spins the indexer in reverse to eject or unjam fuel
+   * 
+   * @return new command
    */
-  public void eject() {
-    indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(INDEXER_EJECT_VELOCITY));
-  }
-
-  public Command ejectCommand() {
+  public Command eject() {
     return run(coroutine -> {
-      eject();
+      indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(INDEXER_EJECT_VELOCITY));
       coroutine.park();
-    }).whenCanceled(this::stop).named("Eject");
+    }).named("Eject");
   }
 
   /**
-   * Run the indexer at the set velocity. Used for tuning, should not be used for normal operation.
+   * Returns a command to run the indexer at the set velocity. Used for tuning, should not be used for normal operation.
    * 
    * @param velocity the velocity to run the indexer
+   * 
+   * @return new command
    */
-  public void runIndexer(AngularVelocity velocity) {
-    indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(velocity));
-  }
-
-  public Command runIndexerCommand(AngularVelocity velocity) {
+  public Command runIndexer(AngularVelocity velocity) {
     return run(coroutine -> {
-      runIndexer(velocity);
+      indexerLeaderMotor.setControl(indexerVelocityTorque.withVelocity(velocity));
       coroutine.park();
     }).named("Run Indexer at " + velocity);
   }
 
   /**
-   * Stops the indexer
+   * Returns a command that stops the indexer
+   * 
+   * @return new command
    */
-  public void stop() {
-    indexerLeaderMotor.stopMotor();
-  }
-
-  public Command stopCommand() {
+  public Command stop() {
     return run(coroutine -> {
-      stop();
+      indexerLeaderMotor.stopMotor();
       coroutine.park();
     }).named("Stop");
   }

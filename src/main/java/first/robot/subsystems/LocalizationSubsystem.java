@@ -1,26 +1,27 @@
-package frc.robot.subsystems;
+package first.robot.subsystems;
 
-import static frc.robot.Constants.FieldConstants.isValidFieldTranslation;
-import static frc.robot.Constants.VisionConstants.ANGULAR_VELOCITY_THRESHOLD;
-import static frc.robot.Constants.VisionConstants.APRILTAG_AMBIGUITY_THRESHOLD;
-import static frc.robot.Constants.VisionConstants.APRILTAG_CAMERA_NAMES;
-import static frc.robot.Constants.VisionConstants.LIMELIGHT_BLUE_PIPELINE;
-import static frc.robot.Constants.VisionConstants.LIMELIGHT_RED_PIPELINE;
-import static frc.robot.Constants.VisionConstants.MULTI_TAG_STD_DEVS;
-import static frc.robot.Constants.VisionConstants.ROBOT_TO_CAMERA_TRANSFORMS;
-import static frc.robot.Constants.VisionConstants.SINGLE_TAG_STD_DEVS;
-import static frc.robot.Constants.VisionConstants.TAG_DISTANCE_THRESHOLD;
+import static first.robot.Constants.FieldConstants.isValidFieldTranslation;
+import static first.robot.Constants.VisionConstants.ANGULAR_VELOCITY_THRESHOLD;
+import static first.robot.Constants.VisionConstants.APRILTAG_AMBIGUITY_THRESHOLD;
+import static first.robot.Constants.VisionConstants.APRILTAG_CAMERA_NAMES;
+import static first.robot.Constants.VisionConstants.LIMELIGHT_BLUE_PIPELINE;
+import static first.robot.Constants.VisionConstants.LIMELIGHT_RED_PIPELINE;
+import static first.robot.Constants.VisionConstants.MULTI_TAG_STD_DEVS;
+import static first.robot.Constants.VisionConstants.ROBOT_TO_CAMERA_TRANSFORMS;
+import static first.robot.Constants.VisionConstants.SINGLE_TAG_STD_DEVS;
+import static first.robot.Constants.VisionConstants.TAG_DISTANCE_THRESHOLD;
 import static org.wpilib.driverstation.Alliance.BLUE;
 import static org.wpilib.units.Units.Degrees;
 import static org.wpilib.units.Units.Meters;
 
-import frc.robot.LimelightHelpers;
-import frc.robot.LimelightHelpers.PoseEstimate;
-import frc.robot.VisionMeasurementConsumer;
+import first.robot.LimelightHelpers;
+import first.robot.LimelightHelpers.PoseEstimate;
+import first.robot.VisionMeasurementConsumer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.wpilib.command2.SubsystemBase;
+import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.driverstation.MatchState;
 import org.wpilib.driverstation.RobotState;
 import org.wpilib.math.geometry.Pose3d;
@@ -35,7 +36,7 @@ import org.wpilib.units.measure.AngularVelocity;
  * It manages camera pose configuration, vision measurement consumption, and field position validation.
  * Vision measurements are fused from multiple sources and published for use by other subsystems.
  */
-public class LocalizationSubsystem extends SubsystemBase {
+public class LocalizationSubsystem extends Mechanism {
 
   private final VisionMeasurementConsumer visionMeasurementConsumer;
   private final Supplier<AngularVelocity> robotAngularVelocitySupplier;
@@ -69,20 +70,13 @@ public class LocalizationSubsystem extends SubsystemBase {
             ROBOT_TO_CAMERA_TRANSFORMS[i].getRotation().getMeasureY().in(Degrees),
             ROBOT_TO_CAMERA_TRANSFORMS[i].getRotation().getMeasureZ().in(Degrees));
     }
-  }
 
-  /**
-   * Periodically updates the localization system with vision and pose data.
-   * <p>
-   * This method is called automatically by the scheduler. It retrieves and validates vision-based pose estimates from
-   * Limelight and QuestNav, and provides vision measurements to the consumer.
-   */
-  @Override
-  public void periodic() {
-    if (RobotState.isDisabled()) {
-      periodicDisabled();
-    }
-    periodicLimelight();
+    Scheduler.getDefault().addPeriodic(() -> {
+      if (RobotState.isDisabled()) {
+        periodicDisabled();
+      }
+      periodicLimelight();
+    });
   }
 
   /**

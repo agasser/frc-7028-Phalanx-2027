@@ -1,7 +1,7 @@
-package frc.robot;
+package first.robot;
 
-import static frc.robot.Constants.FieldConstants.FIELD_WIDTH;
-import static frc.robot.Constants.IntakeConstants.RETRACTED_POSITION;
+import static first.robot.Constants.FieldConstants.FIELD_WIDTH;
+import static first.robot.Constants.IntakeConstants.RETRACTED_POSITION;
 import static org.wpilib.math.util.Units.degreesToRadians;
 import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Degrees;
@@ -16,8 +16,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.signals.GravityTypeValue;
-import com.pathplanner.lib.util.FlippingUtil;
-import frc.robot.generated.TunerConstants;
+import first.robot.generated.TunerConstants;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.geometry.Rotation3d;
@@ -95,7 +94,10 @@ public final class Constants {
     /** Rotate around center with intake out */
     public static final Translation2d CENTER_OF_ROTATION = new Translation2d(Inches.of(6.0), Inches.zero());
     /** Red reset pose is the red corner, bumpers against the walls, facing downfield. */
-    public static final Pose3d RESET_POSE_RED = new Pose3d(FlippingUtil.flipFieldPose(RESET_POSE_BLUE.toPose2d()));
+    public static final Pose3d RESET_POSE_RED = new Pose3d(
+        new Translation3d(FIELD_WIDTH.in(Meters) - RESET_POSE_BLUE.getX(), RESET_POSE_BLUE.getY(), 0.0),
+        new Rotation3d(RESET_POSE_BLUE.getRotation().toRotation2d().minus(Rotation2d.kPi)));
+
   }
 
   /**
@@ -308,17 +310,22 @@ public final class Constants {
     /** Translation of the hub on the red side */
     public static final Translation2d HUB_RED = new Translation2d(Inches.of(469.078905), Inches.of(158.84375));
 
-    /** Translations for shuttling on the blue side, with Z > 1/2 of the field */
+    /** Translations for shuttling on the blue side, with Y > 1/2 of the field */
     public static final Translation2d SHUTTLE_BLUE_HIGH = new Translation2d(
         Inches.of(2.0),
         FIELD_WIDTH.minus(Inches.of(42)));
-    /** Translations for shuttling on the blue side, with Z < 1/2 of the field */
+    /** Translations for shuttling on the blue side, with Y < 1/2 of the field */
     public static final Translation2d SHUTTLE_BLUE_LOW = new Translation2d(Inches.of(2.0), Inches.of(42));
 
-    /** Translations for shuttling on the red side, with Z > 1/2 of the field */
-    public static final Translation2d SHUTTLE_RED_HIGH = FlippingUtil.flipFieldPosition(SHUTTLE_BLUE_LOW);
-    /** Translations for shuttling on the red side, with Z < 1/2 of the field */
-    public static final Translation2d SHUTTLE_RED_LOW = FlippingUtil.flipFieldPosition(SHUTTLE_BLUE_HIGH);
+    /** Translations for shuttling on the red side, with Y > 1/2 of the field */
+    public static final Translation2d SHUTTLE_RED_HIGH = new Translation2d(
+        FIELD_WIDTH.in(Meters) - SHUTTLE_BLUE_HIGH.getX(),
+        SHUTTLE_BLUE_HIGH.getY());
+
+    /** Translations for shuttling on the red side, with Y < 1/2 of the field */
+    public static final Translation2d SHUTTLE_RED_LOW = new Translation2d(
+        FIELD_WIDTH.in(Meters) - SHUTTLE_BLUE_LOW.getX(),
+        SHUTTLE_BLUE_LOW.getY());
 
     /**
      * The offset distance from the shuttle target where the robot will shoot. It will shoot offset distance short

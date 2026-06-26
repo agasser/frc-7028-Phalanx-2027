@@ -2,44 +2,46 @@
 //Open Source Software; can modify and/or share it under the terms of
 //the WPILib BSD licensefile in the root directory of this project.
 
-package frc.robot.subsystems;
+package first.robot.subsystems;
 
-import static frc.robot.Constants.CANIVORE_BUS;
-import static frc.robot.Constants.IntakeConstants.CHANNEL_ID_DEPLOY_POTENTIOMETER;
-import static frc.robot.Constants.IntakeConstants.DEPLOYED_POSITION;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_FORWARD_LIMIT;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_MOTION_MAGIC_CONFIGS;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_PEAK_CURRENT_FORWARD;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_PEAK_CURRENT_REVERSE;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_REVERSE_LIMIT;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_SLOT_CONFIGS;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_STATOR_CURRENT_LIMIT;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_SUPPLY_CURRENT_LIMIT;
-import static frc.robot.Constants.IntakeConstants.DEPLOY_TOLERANCE;
-import static frc.robot.Constants.IntakeConstants.DEVICE_ID_DEPLOY_MOTOR;
-import static frc.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_FOLLOWER;
-import static frc.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_MOTOR;
-import static frc.robot.Constants.IntakeConstants.POSE_DEPLOYED;
-import static frc.robot.Constants.IntakeConstants.POSE_RETRACTED;
-import static frc.robot.Constants.IntakeConstants.POTENTIOMETER_FULL_RANGE;
-import static frc.robot.Constants.IntakeConstants.POTENTIOMETER_OFFSET;
-import static frc.robot.Constants.IntakeConstants.RETRACTED_POSITION;
-import static frc.robot.Constants.IntakeConstants.ROLLER_EJECT_VELOCITY;
-import static frc.robot.Constants.IntakeConstants.ROLLER_INTAKE_SHOOTING_VELOCITY;
-import static frc.robot.Constants.IntakeConstants.ROLLER_INTAKE_VELOCITY;
-import static frc.robot.Constants.IntakeConstants.ROLLER_PEAK_TORQUE_CURRENT_FORWARD;
-import static frc.robot.Constants.IntakeConstants.ROLLER_PEAK_TORQUE_CURRENT_REVERSE;
-import static frc.robot.Constants.IntakeConstants.ROLLER_SLOT_CONFIGS;
-import static frc.robot.Constants.IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT;
-import static frc.robot.Constants.IntakeConstants.ROLLER_SUPPLY_CURRENT_LIMIT;
+import static first.robot.Constants.CANIVORE_BUS;
+import static first.robot.Constants.IntakeConstants.CHANNEL_ID_DEPLOY_POTENTIOMETER;
+import static first.robot.Constants.IntakeConstants.DEPLOYED_POSITION;
+import static first.robot.Constants.IntakeConstants.DEPLOY_FORWARD_LIMIT;
+import static first.robot.Constants.IntakeConstants.DEPLOY_MOTION_MAGIC_CONFIGS;
+import static first.robot.Constants.IntakeConstants.DEPLOY_PEAK_CURRENT_FORWARD;
+import static first.robot.Constants.IntakeConstants.DEPLOY_PEAK_CURRENT_REVERSE;
+import static first.robot.Constants.IntakeConstants.DEPLOY_REVERSE_LIMIT;
+import static first.robot.Constants.IntakeConstants.DEPLOY_SHOOTING_CURRENT;
+import static first.robot.Constants.IntakeConstants.DEPLOY_SLOT_CONFIGS;
+import static first.robot.Constants.IntakeConstants.DEPLOY_STATOR_CURRENT_LIMIT;
+import static first.robot.Constants.IntakeConstants.DEPLOY_SUPPLY_CURRENT_LIMIT;
+import static first.robot.Constants.IntakeConstants.DEPLOY_TOLERANCE;
+import static first.robot.Constants.IntakeConstants.DEVICE_ID_DEPLOY_MOTOR;
+import static first.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_FOLLOWER;
+import static first.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_MOTOR;
+import static first.robot.Constants.IntakeConstants.POSE_RETRACTED;
+import static first.robot.Constants.IntakeConstants.POTENTIOMETER_FULL_RANGE;
+import static first.robot.Constants.IntakeConstants.POTENTIOMETER_OFFSET;
+import static first.robot.Constants.IntakeConstants.RETRACTED_POSITION;
+import static first.robot.Constants.IntakeConstants.ROLLER_EJECT_VELOCITY;
+import static first.robot.Constants.IntakeConstants.ROLLER_INTAKE_SHOOTING_VELOCITY;
+import static first.robot.Constants.IntakeConstants.ROLLER_INTAKE_VELOCITY;
+import static first.robot.Constants.IntakeConstants.ROLLER_PEAK_TORQUE_CURRENT_FORWARD;
+import static first.robot.Constants.IntakeConstants.ROLLER_PEAK_TORQUE_CURRENT_REVERSE;
+import static first.robot.Constants.IntakeConstants.ROLLER_SLOT_CONFIGS;
+import static first.robot.Constants.IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT;
+import static first.robot.Constants.IntakeConstants.ROLLER_SUPPLY_CURRENT_LIMIT;
+import static first.robot.Constants.ShootingConstants.JAM_DEBOUNCE_TIME;
+import static first.robot.Constants.ShootingConstants.JAM_THRESHOLD;
+import static first.robot.Constants.ShootingConstants.RETRACTED_THRESHOLD;
+import static first.robot.Constants.ShootingConstants.RETRACT_INTAKE_DELAY;
+import static first.robot.Constants.ShootingConstants.UNJAM_DURATION;
 import static org.wpilib.units.Units.Hertz;
 import static org.wpilib.units.Units.Rotations;
-import static org.wpilib.units.Units.Second;
-import static org.wpilib.units.Units.Value;
-import static org.wpilib.units.Units.Volts;
+import static org.wpilib.units.Units.Seconds;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -51,29 +53,28 @@ import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import org.wpilib.command2.Command;
-import org.wpilib.command2.SubsystemBase;
-import org.wpilib.command2.sysid.SysIdRoutine;
-import org.wpilib.command2.sysid.SysIdRoutine.Direction;
+import org.wpilib.command3.Command;
+import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.rotation.AnalogPotentiometer;
+import org.wpilib.math.filter.Debouncer;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.units.measure.Angle;
 import org.wpilib.units.measure.AngularVelocity;
 import org.wpilib.units.measure.Current;
+import org.wpilib.units.measure.Time;
 
 /**
  * Subsytem for the intake.
  */
 @Logged(strategy = Logged.Strategy.OPT_IN)
-public class IntakeSubsytem extends SubsystemBase {
+public class IntakeSubsytem extends Mechanism {
 
   private final TalonFX rollerLeaderMotor = new TalonFX(DEVICE_ID_ROLLER_MOTOR, CANIVORE_BUS);
   private final TalonFX rollerFollowerMotor = new TalonFX(DEVICE_ID_ROLLER_FOLLOWER, CANIVORE_BUS);
@@ -84,9 +85,6 @@ public class IntakeSubsytem extends SubsystemBase {
   private final TorqueCurrentFOC deployTorqueControl = new TorqueCurrentFOC(0.0);
   private final VelocityTorqueCurrentFOC rollerControl = new VelocityTorqueCurrentFOC(0.0);
 
-  private final TorqueCurrentFOC rollerSysIdControl = new TorqueCurrentFOC(0.0);
-  private final VoltageOut deploySysIdControl = new VoltageOut(0.0).withEnableFOC(true);
-
   private final StatusSignal<Angle> deployPositionSignal = deployMotor.getPosition(false);
   private final StatusSignal<AngularVelocity> deployVelocitySignal = deployMotor.getVelocity(false);
 
@@ -95,31 +93,6 @@ public class IntakeSubsytem extends SubsystemBase {
       CHANNEL_ID_DEPLOY_POTENTIOMETER,
       POTENTIOMETER_FULL_RANGE.in(Rotations),
       POTENTIOMETER_OFFSET.in(Rotations));
-
-  // SysId routines
-  // NOTE: the output type is amps, NOT volts (even though it says volts)
-  // https://www.chiefdelphi.com/t/sysid-with-ctre-swerve-characterization/452631/8
-  private final SysIdRoutine rollerSysIdRoutine = new SysIdRoutine(
-      new SysIdRoutine.Config(
-          Volts.of(1).per(Second),
-          Volts.of(30),
-          null,
-          state -> SignalLogger.writeString("Intake Roller SysId", state.toString())),
-      new SysIdRoutine.Mechanism(
-          (amps) -> rollerLeaderMotor.setControl(rollerSysIdControl.withOutput(amps.in(Volts))),
-          null,
-          this));
-
-  private final SysIdRoutine deploySysIdRoutine = new SysIdRoutine(
-      new SysIdRoutine.Config(
-          Volts.of(0.1).per(Second),
-          Volts.of(1),
-          null,
-          state -> SignalLogger.writeString("Intake Deploy SysId", state.toString())),
-      new SysIdRoutine.Mechanism(
-          (volts) -> deployMotor.setControl(deploySysIdControl.withOutput(volts.in(Volts))),
-          null,
-          this));
 
   private Pose3d currentPose3d = POSE_RETRACTED;
 
@@ -196,61 +169,14 @@ public class IntakeSubsytem extends SubsystemBase {
     deployMotor.optimizeBusUtilization();
   }
 
-  /**
-   * Command to run roller SysId routine in dynamic mode
-   * 
-   * @param direction The direction to run the roller motor for dynamic mode
-   * @return The SysId output data for dynamic mode
-   */
-  public Command sysIdRollerDynamicCommand(Direction direction) {
-    return rollerSysIdRoutine.dynamic(direction)
-        .withName("SysId intake dynam " + direction)
-        .finallyDo(this::stopIntaking);
-  }
-
-  /**
-   * Command to run roller SysId routine in quasistatic mode
-   * 
-   * @param direction The direction to run the roller motor for quasistatic mode
-   * @return The SysId output data for quasistatic mode
-   */
-  public Command sysIdRollerQuasistaticCommand(Direction direction) {
-    return rollerSysIdRoutine.quasistatic(direction)
-        .withName("SysId intake quasi " + direction)
-        .finallyDo(this::stopIntaking);
-  }
-
-  /**
-   * Command to run deploy SysId routine in dynamic mode
-   * 
-   * @param direction The direction to run the deploy motor for dynamic mode
-   * @return The SysId output data for dynamic mode
-   */
-  public Command sysIdDeployDynamicCommand(Direction direction) {
-    return deploySysIdRoutine.dynamic(direction)
-        .withName("SysId deploy dynam " + direction)
-        .finallyDo(this::stopDeploy);
-  }
-
-  /**
-   * Command to run deploy SysId routine in quasistatic mode
-   * 
-   * @param direction The direction to run the deploy motor for quasistatic mode
-   * @return The SysId output data for quasistatic mode
-   */
-  public Command sysIdDeployQuasistaticCommand(Direction direction) {
-    return deploySysIdRoutine.quasistatic(direction)
-        .withName("SysId deploy quasi " + direction)
-        .finallyDo(this::stopDeploy);
-  }
-
-  @Override
-  public void periodic() {
-    BaseStatusSignal.refreshAll(deployPositionSignal, deployVelocitySignal);
-    // Update the intake pose for AdvantageScope
-    Angle deployPosition = BaseStatusSignal.getLatencyCompensatedValue(deployPositionSignal, deployVelocitySignal);
-    currentPose3d = POSE_RETRACTED.interpolate(POSE_DEPLOYED, deployPosition.div(DEPLOY_FORWARD_LIMIT).in(Value));
-  }
+  // TODO figure out where to put this
+  // @Override
+  // public void periodic() {
+  // BaseStatusSignal.refreshAll(deployPositionSignal, deployVelocitySignal);
+  // // Update the intake pose for AdvantageScope
+  // Angle deployPosition = BaseStatusSignal.getLatencyCompensatedValue(deployPositionSignal, deployVelocitySignal);
+  // currentPose3d = POSE_RETRACTED.interpolate(POSE_DEPLOYED, deployPosition.div(DEPLOY_FORWARD_LIMIT).in(Value));
+  // }
 
   /**
    * Runs the intake rollers to intake fuel
@@ -260,10 +186,44 @@ public class IntakeSubsytem extends SubsystemBase {
   }
 
   /**
+   * Returns a new command to deploy the intake and run it to intake fuel
+   * 
+   * @return new command
+   */
+  public Command intakeCommand() {
+    return run(coroutine -> {
+      deploy();
+      runIntake();
+      while (!isDeployed()) {
+        coroutine.yield();
+      }
+      stopDeploy();
+      coroutine.park();
+    }).whenCanceled(this::stop).named("Intake");
+  }
+
+  /**
    * Reverses the intake rollers to eject or unjam fuel
    */
   public void eject() {
     rollerLeaderMotor.setControl(rollerControl.withVelocity(ROLLER_EJECT_VELOCITY));
+  }
+
+  /**
+   * Returns a new command to deploy the intake and run it backwards to intake fuel
+   * 
+   * @return new command
+   */
+  public Command ejectCommand() {
+    return run(coroutine -> {
+      deploy();
+      eject();
+      while (!isDeployed()) {
+        coroutine.yield();
+      }
+      stopDeploy();
+      coroutine.park();
+    }).whenCanceled(this::stop).named("Eject");
   }
 
   /**
@@ -331,6 +291,13 @@ public class IntakeSubsytem extends SubsystemBase {
     stopDeploy();
   }
 
+  public Command stopCommand() {
+    return run(coroutine -> {
+      stop();
+      coroutine.park();
+    }).named("Stop");
+  }
+
   /**
    * Checks if the intake is deployed
    * 
@@ -388,12 +355,101 @@ public class IntakeSubsytem extends SubsystemBase {
   }
 
   /**
+   * Creates a command to deploy the intake. This command will turn off the intake and exit once the intake is deployed.
+   * 
+   * @return new command
+   */
+  public Command deployIntakeCommand() {
+    return run(coroutine -> {
+      deploy();
+      while (!isDeployed()) {
+        coroutine.yield();
+      }
+      stop();
+    }).whenCanceled(this::stop).named("Deploy Intake");
+  }
+
+  /**
+   * Creates a new command to retract the intake and turn it off once retracted. This command will run until
+   * interrupted.
+   * 
+   * @return new command
+   */
+  public Command retractIntakeCommand() {
+    return run(coroutine -> {
+      retract();
+      while (!isRetracted()) {
+        coroutine.yield();
+      }
+      stop();
+      coroutine.park();
+    }).whenCanceled(this::stop).named("Retract");
+  }
+
+  /**
    * Gets the position of the intake from the potentiometer.
    * 
    * @return the position reading from the potentiometer
    */
   private double getPotentiometerValue() {
     return deploySensor.get();
+  }
+
+  /**
+   * Runs one iteration of the intake shooting sequence with tunable unjam parameters. This should be called repeatedly
+   * (e.g. in command execute())
+   * 
+   * @param retractDelay the time to wait before retracting the intake
+   * @param retractCurrent the current to use when retracting the intake
+   * @param jamThreshold the velocity below which we consider the intake to be jammed
+   * @param unjamDuration the duration for which to unjamming
+   * @param retractedThreshold the deploy position below which we consider the intake retracted and can stop
+   */
+  public Command shootingSequence(
+      Time debounceTime,
+      Time retractDelay,
+      Current retractCurrent,
+      AngularVelocity jamThreshold,
+      Time unjamDuration,
+      Angle retractedThreshold) {
+
+    return run(coroutine -> {
+      Debouncer jamDebouncer = new Debouncer(debounceTime.in(Seconds));
+      runIntakeForShooting();
+      coroutine.wait(retractDelay);
+      retractForShooting(retractCurrent);
+      while (true) {
+        // Check if the intake is in
+        if (getDeployPosition().lte(retractedThreshold)) {
+          stopDeploy();
+          coroutine.park(); // All done, but leave the rollers running until canceled
+        }
+
+        // Check if the intake is jammed
+        boolean isJammed = getDeployVelocity().gt(jamThreshold);
+        if (jamDebouncer.calculate(isJammed)) {
+          // Intake is jammed, jiggle it for unjamDuration
+          deploy();
+          coroutine.wait(unjamDuration);
+
+          jamDebouncer.calculate(false);
+          retractForShooting(retractCurrent);
+        }
+
+        coroutine.yield();
+      }
+    }).whenCanceled(this::stop).named("Shooting Sequence");
+
+  }
+
+  public Command shootingSequence() {
+    return shootingSequence(
+        JAM_DEBOUNCE_TIME,
+          RETRACT_INTAKE_DELAY,
+          DEPLOY_SHOOTING_CURRENT,
+          JAM_THRESHOLD,
+          UNJAM_DURATION,
+          RETRACTED_THRESHOLD);
   }
 
 }

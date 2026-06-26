@@ -1,6 +1,6 @@
-package frc.robot;
+package first.robot;
 
-import static frc.robot.Constants.CANIVORE_BUS;
+import static first.robot.Constants.CANIVORE_BUS;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;

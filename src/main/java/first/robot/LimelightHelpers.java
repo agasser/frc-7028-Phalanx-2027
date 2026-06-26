@@ -1,6 +1,6 @@
 //LimelightHelpers v1.14 (REQUIRES LLOS 2026.0 OR LATER)
 
-package frc.robot;
+package first.robot;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
@@ -26,7 +26,7 @@ import org.wpilib.networktables.NetworkTableInstance;
 import org.wpilib.networktables.TimestampedDoubleArray;
 
 /**
- * LimelightHelpers provides static methods and classes for interfacing with Limelight vision cameras in FRC.
+ * LimelightHelpers provides static methods and classes for interfacing with Limelight vision cameras in first.
  * This library supports all Limelight features including AprilTag tracking, Neural Networks, and standard
  * color/retroreflective tracking.
  */

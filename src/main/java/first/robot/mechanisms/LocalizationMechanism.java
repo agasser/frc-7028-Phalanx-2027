@@ -1,4 +1,4 @@
-package first.robot.subsystems;
+package first.robot.mechanisms;
 
 import static first.robot.Constants.FieldConstants.isValidFieldTranslation;
 import static first.robot.Constants.VisionConstants.ANGULAR_VELOCITY_THRESHOLD;
@@ -30,27 +30,27 @@ import org.wpilib.networktables.StructPublisher;
 import org.wpilib.units.measure.AngularVelocity;
 
 /**
- * Subsystem for the localization system.
+ * Mechanism for the localization system.
  * <p>
- * This subsystem integrates Limelight and QuestNav vision systems to provide pose estimation and field localization.
+ * This mechanism integrates Limelight and QuestNav vision systems to provide pose estimation and field localization.
  * It manages camera pose configuration, vision measurement consumption, and field position validation.
- * Vision measurements are fused from multiple sources and published for use by other subsystems.
+ * Vision measurements are fused from multiple sources and published for use by other mechanisms.
  */
-public class LocalizationSubsystem extends Mechanism {
+public class LocalizationMechanism extends Mechanism {
 
   private final VisionMeasurementConsumer visionMeasurementConsumer;
   private final Supplier<AngularVelocity> robotAngularVelocitySupplier;
   private final Map<String, StructPublisher<Pose3d>> visionPosePublishers;
 
   /**
-   * Constructs a new LocalizationSubsystem.
+   * Constructs a new LocalizationMechanism.
    *
    * @param addVisionMeasurement the consumer for vision-based pose measurements
    * @param poseResetConsumer the consumer for resetting the robot's pose when the robot is disabled
    * @param angularVelocitySupplier supplier for the robot's current angular velocity, NOT from the fused estimator but
    *          directly from the IMU
    */
-  public LocalizationSubsystem(
+  public LocalizationMechanism(
       VisionMeasurementConsumer addVisionMeasurement,
       Supplier<AngularVelocity> angularVelocitySupplier) {
     this.visionMeasurementConsumer = addVisionMeasurement;

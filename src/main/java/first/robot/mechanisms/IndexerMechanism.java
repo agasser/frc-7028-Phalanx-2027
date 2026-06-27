@@ -1,4 +1,4 @@
-package first.robot.subsystems;
+package first.robot.mechanisms;
 
 import static first.robot.Constants.CANIVORE_BUS;
 import static first.robot.Constants.IndexerConstants.DEVICE_ID_INDEXER_MOTOR_FOLLOWER;
@@ -30,9 +30,9 @@ import org.wpilib.command3.Mechanism;
 import org.wpilib.units.measure.AngularVelocity;
 
 /**
- * Subsystem for the Indexer.
+ * Mechanism for the Indexer.
  */
-public class IndexerSubsystem extends Mechanism {
+public class IndexerMechanism extends Mechanism {
 
   private final TalonFX indexerLeaderMotor = new TalonFX(DEVICE_ID_INDEXER_MOTOR_LEADER, CANIVORE_BUS);
   private final TalonFX indexerFollower = new TalonFX(DEVICE_ID_INDEXER_MOTOR_FOLLOWER, CANIVORE_BUS);
@@ -40,9 +40,9 @@ public class IndexerSubsystem extends Mechanism {
   private final VelocityTorqueCurrentFOC indexerVelocityTorque = new VelocityTorqueCurrentFOC(0.0);
 
   /**
-   * Creates a new Subsystem for the Indexer
+   * Creates a new Mechanism for the Indexer
    */
-  public IndexerSubsystem() {
+  public IndexerMechanism() {
     var indexerTalonconfig = new TalonFXConfiguration().withSlot0(Slot0Configs.from(INDEXER_SLOT_CONFIGS))
         .withMotorOutput(
             new MotorOutputConfigs().withInverted(InvertedValue.Clockwise_Positive)

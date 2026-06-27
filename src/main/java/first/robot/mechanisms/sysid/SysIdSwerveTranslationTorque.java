@@ -1,4 +1,4 @@
-package first.robot.subsystems.sysid;
+package first.robot.mechanisms.sysid;
 
 import static org.wpilib.units.Units.*;
 

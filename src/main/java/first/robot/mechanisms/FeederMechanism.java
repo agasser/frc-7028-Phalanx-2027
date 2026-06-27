@@ -1,4 +1,4 @@
-package first.robot.subsystems;
+package first.robot.mechanisms;
 
 import static first.robot.Constants.CANIVORE_BUS;
 import static first.robot.Constants.FeederConstants.DEVICE_ID_FEEDER_FOLLOWER;
@@ -30,15 +30,15 @@ import org.wpilib.command3.Mechanism;
 import org.wpilib.units.measure.AngularVelocity;
 
 /**
- * Subsystem for the Feeder.
+ * Mechanism for the Feeder.
  */
-public class FeederSubsystem extends Mechanism {
+public class FeederMechanism extends Mechanism {
   private final TalonFX feederLeaderMotor = new TalonFX(DEVICE_ID_FEEDER_LEADER, CANIVORE_BUS);
   private final TalonFX feederFollowerMotor = new TalonFX(DEVICE_ID_FEEDER_FOLLOWER, CANIVORE_BUS);
 
   private final VelocityTorqueCurrentFOC feederVelocityTorque = new VelocityTorqueCurrentFOC(0.0);
 
-  public FeederSubsystem() {
+  public FeederMechanism() {
     var feederTalonconfig = new TalonFXConfiguration().withSlot0(Slot0Configs.from(FEEDER_SLOT_CONFIGS))
         .withMotorOutput(new MotorOutputConfigs().withInverted(InvertedValue.Clockwise_Positive))
         .withTorqueCurrent(

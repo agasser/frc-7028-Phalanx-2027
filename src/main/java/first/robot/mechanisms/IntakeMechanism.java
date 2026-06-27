@@ -2,7 +2,7 @@
 //Open Source Software; can modify and/or share it under the terms of
 //the WPILib BSD licensefile in the root directory of this project.
 
-package first.robot.subsystems;
+package first.robot.mechanisms;
 
 import static first.robot.Constants.CANIVORE_BUS;
 import static first.robot.Constants.IntakeConstants.CHANNEL_ID_DEPLOY_POTENTIOMETER;
@@ -77,7 +77,7 @@ import org.wpilib.units.measure.Time;
  * Subsytem for the intake.
  */
 @Logged(strategy = Logged.Strategy.OPT_IN)
-public class IntakeSubsytem extends Mechanism {
+public class IntakeMechanism extends Mechanism {
 
   private final TalonFX rollerLeaderMotor = new TalonFX(DEVICE_ID_ROLLER_MOTOR, CANIVORE_BUS);
   private final TalonFX rollerFollowerMotor = new TalonFX(DEVICE_ID_ROLLER_FOLLOWER, CANIVORE_BUS);
@@ -102,7 +102,7 @@ public class IntakeSubsytem extends Mechanism {
   /**
    * Creates a new substyem for the intake
    */
-  public IntakeSubsytem() {
+  public IntakeMechanism() {
     // Configure the roller motor
     var rollerConfig = new TalonFXConfiguration();
     rollerConfig

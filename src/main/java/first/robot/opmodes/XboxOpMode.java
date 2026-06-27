@@ -32,18 +32,18 @@ public class XboxOpMode extends PeriodicOpMode {
     this.robot = robot;
     commandFactory = new CommandFactory(
         robot.drivetrain,
-        robot.shooterSubsystem,
-        robot.indexerSubsystem,
-        robot.feederSubsystem,
-        robot.intakeSubsystem,
-        robot.ledSubsystem);
+        robot.shooterMechanism,
+        robot.indexerMechanism,
+        robot.feederMechanism,
+        robot.intakeMechanism,
+        robot.ledMechanism);
 
     configureButtonBindings();
   }
 
   @Override
   public void start() {
-    robot.intakeSubsystem.setDefaultCommand(commandFactory.intakeWithLEDsCommand());
+    robot.intakeMechanism.setDefaultCommand(commandFactory.intakeWithLEDsCommand());
   }
 
   protected void configureButtonBindings() {
@@ -64,9 +64,9 @@ public class XboxOpMode extends PeriodicOpMode {
 
     driverGamepad.rightBumper().onTrue(commandFactory.intakeWithLEDsCommand());
 
-    driverGamepad.povLeft().onTrue(robot.intakeSubsystem.deploy());
+    driverGamepad.povLeft().onTrue(robot.intakeMechanism.deploy());
 
-    driverGamepad.povRight().onTrue(robot.intakeSubsystem.retract());
+    driverGamepad.povRight().onTrue(robot.intakeMechanism.retract());
 
     driverGamepad.westFace().whileTrue(commandFactory.ejectCommand());
 

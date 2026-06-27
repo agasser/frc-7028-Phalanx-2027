@@ -1,4 +1,4 @@
-package first.robot.subsystems;
+package first.robot.mechanisms;
 
 import static com.ctre.phoenix6.signals.NeutralModeValue.Coast;
 import static first.robot.Constants.CANIVORE_BUS;
@@ -38,9 +38,9 @@ import org.wpilib.math.util.MathUtil;
 import org.wpilib.units.measure.AngularAcceleration;
 import org.wpilib.units.measure.AngularVelocity;
 
-/** Shooter subsystem: turret yaw + pitch + flywheel. */
+/** Shooter mechanism: turret yaw + pitch + flywheel. */
 @Logged(strategy = Logged.Strategy.OPT_IN)
-public class ShooterSubsystem extends Mechanism {
+public class ShooterMechanism extends Mechanism {
   private final TalonFX flywheelLeaderMotor = new TalonFX(DEVICE_ID_FLYWHEEL_LEADER, CANIVORE_BUS);
   private final TalonFX flywheelFollower0Motor = new TalonFX(DEVICE_ID_FLYWHEEL_FOLLOWER_0, CANIVORE_BUS);
   private final TalonFX flywheelFollower1Motor = new TalonFX(DEVICE_ID_FLYWHEEL_FOLLOWER_1, CANIVORE_BUS);
@@ -52,9 +52,9 @@ public class ShooterSubsystem extends Mechanism {
   private final StatusSignal<AngularAcceleration> flywheelAcceleration = flywheelLeaderMotor.getAcceleration(false);
 
   /**
-   * Creates a new shooter subsystem
+   * Creates a new shooter mechanism
    */
-  public ShooterSubsystem() {
+  public ShooterMechanism() {
     TalonFXConfiguration flywheelConfig = new TalonFXConfiguration()
         .withMotorOutput(
             new MotorOutputConfigs().withNeutralMode(Coast).withInverted(InvertedValue.CounterClockwise_Positive))

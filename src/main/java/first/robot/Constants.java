@@ -101,7 +101,7 @@ public final class Constants {
   }
 
   /**
-   * Constants for the shooter subsystem
+   * Constants for the shooter mechanism
    */
   public static class ShooterConstants {
     public static final int DEVICE_ID_FLYWHEEL_LEADER = 26; // Right side
@@ -240,7 +240,7 @@ public final class Constants {
   }
 
   /**
-   * Constants for the Feeder Subsystem
+   * Constants for the Feeder Mechanism
    */
   public static class FeederConstants {
     public static final int DEVICE_ID_FEEDER_LEADER = 20;
@@ -271,7 +271,7 @@ public final class Constants {
   /**
    * Constants related to shooting fuel
    * <p>
-   * These constants are not specific to the shooter subsystem, they are about the process of shooting.
+   * These constants are not specific to the shooter mechanism, they are about the process of shooting.
    */
   public static class ShootingConstants {
     public static final Angle AIM_TOLERANCE = Degrees.of(1.5);

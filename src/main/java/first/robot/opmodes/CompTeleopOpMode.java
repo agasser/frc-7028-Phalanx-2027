@@ -33,18 +33,18 @@ public class CompTeleopOpMode extends PeriodicOpMode {
     this.robot = robot;
     commandFactory = new CommandFactory(
         robot.drivetrain,
-        robot.shooterSubsystem,
-        robot.indexerSubsystem,
-        robot.feederSubsystem,
-        robot.intakeSubsystem,
-        robot.ledSubsystem);
+        robot.shooterMechanism,
+        robot.indexerMechanism,
+        robot.feederMechanism,
+        robot.intakeMechanism,
+        robot.ledMechanism);
 
     configureButtonBindings();
   }
 
   @Override
   public void start() {
-    robot.intakeSubsystem.setDefaultCommand(commandFactory.intakeWithLEDsCommand());
+    robot.intakeMechanism.setDefaultCommand(commandFactory.intakeWithLEDsCommand());
   }
 
   protected void configureButtonBindings() {
@@ -59,11 +59,11 @@ public class CompTeleopOpMode extends PeriodicOpMode {
 
     leftJoystick.button(4).onTrue(commandFactory.intakeWithLEDsCommand());
 
-    leftJoystick.button(3).onTrue(robot.intakeSubsystem.stop());
+    leftJoystick.button(3).onTrue(robot.intakeMechanism.stop());
 
-    leftJoystick.trigger().onTrue(robot.intakeSubsystem.deploy());
+    leftJoystick.trigger().onTrue(robot.intakeMechanism.deploy());
 
-    leftJoystick.button(2).onTrue(robot.intakeSubsystem.retract());
+    leftJoystick.button(2).onTrue(robot.intakeMechanism.retract());
 
     leftJoystick.povDown().whileTrue(commandFactory.ejectCommand());
 

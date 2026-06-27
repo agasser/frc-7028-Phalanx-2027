@@ -7,13 +7,13 @@ package first.robot;
 import com.ctre.phoenix6.HootAutoReplay;
 import com.ctre.phoenix6.SignalLogger;
 import first.robot.generated.TunerConstants;
-import first.robot.subsystems.CommandSwerveDrivetrain;
-import first.robot.subsystems.FeederSubsystem;
-import first.robot.subsystems.IndexerSubsystem;
-import first.robot.subsystems.IntakeSubsytem;
-import first.robot.subsystems.LEDSubsystem;
-import first.robot.subsystems.LocalizationSubsystem;
-import first.robot.subsystems.ShooterSubsystem;
+import first.robot.mechanisms.CommandSwerveDrivetrain;
+import first.robot.mechanisms.FeederMechanism;
+import first.robot.mechanisms.IndexerMechanism;
+import first.robot.mechanisms.IntakeMechanism;
+import first.robot.mechanisms.LEDMechanism;
+import first.robot.mechanisms.LocalizationMechanism;
+import first.robot.mechanisms.ShooterMechanism;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.driverstation.DriverStation;
 import org.wpilib.epilogue.Logged;
@@ -28,7 +28,7 @@ public class Robot extends OpModeRobot {
 
   private final DrivetrainTelemetry drivetrainTelemetry = new DrivetrainTelemetry();
 
-  // Create the drivetrain subsystem here instead of using TunerConstants.createDrivetrain() to set standard deviations
+  // Create the drivetrain mechanism here instead of using TunerConstants.createDrivetrain() to set standard deviations
   // without editing generated TunerConstants file
   public final CommandSwerveDrivetrain drivetrain = new CommandSwerveDrivetrain(
       TunerConstants.DrivetrainConstants,
@@ -37,14 +37,14 @@ public class Robot extends OpModeRobot {
       TunerConstants.BackLeft,
       TunerConstants.BackRight);
 
-  public final FeederSubsystem feederSubsystem = new FeederSubsystem();
-  public final IndexerSubsystem indexerSubsystem = new IndexerSubsystem();
+  public final FeederMechanism feederMechanism = new FeederMechanism();
+  public final IndexerMechanism indexerMechanism = new IndexerMechanism();
   @Logged
-  public final IntakeSubsytem intakeSubsystem = new IntakeSubsytem();
+  public final IntakeMechanism intakeMechanism = new IntakeMechanism();
   @Logged
-  public final ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
-  public final LEDSubsystem ledSubsystem = new LEDSubsystem();
-  public final LocalizationSubsystem localizationSubsystem = new LocalizationSubsystem(
+  public final ShooterMechanism shooterMechanism = new ShooterMechanism();
+  public final LEDMechanism ledMechanism = new LEDMechanism();
+  public final LocalizationMechanism localizationMechanism = new LocalizationMechanism(
       drivetrain::addVisionMeasurement,
       drivetrain::getIMUYawVelocity);
 
@@ -64,13 +64,13 @@ public class Robot extends OpModeRobot {
 
     drivetrain.registerTelemetry(drivetrainTelemetry::telemeterize);
 
-    ledSubsystem.setDefaultCommand(ledSubsystem.defaultCommand());
-    Scheduler.getDefault().schedule(ledSubsystem.bootAnimation());
+    ledMechanism.setDefaultCommand(ledMechanism.defaultCommand());
+    Scheduler.getDefault().schedule(ledMechanism.bootAnimation());
 
-    feederSubsystem.setDefaultCommand(feederSubsystem.stop());
-    indexerSubsystem.setDefaultCommand(indexerSubsystem.stop());
-    shooterSubsystem.setDefaultCommand(shooterSubsystem.stop());
-    intakeSubsystem.setDefaultCommand(intakeSubsystem.stop());
+    feederMechanism.setDefaultCommand(feederMechanism.stop());
+    indexerMechanism.setDefaultCommand(indexerMechanism.stop());
+    shooterMechanism.setDefaultCommand(shooterMechanism.stop());
+    intakeMechanism.setDefaultCommand(intakeMechanism.stop());
   }
 
   @Override

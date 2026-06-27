@@ -36,12 +36,12 @@ import static org.wpilib.units.Units.Seconds;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-import first.robot.subsystems.CommandSwerveDrivetrain;
-import first.robot.subsystems.FeederSubsystem;
-import first.robot.subsystems.IndexerSubsystem;
-import first.robot.subsystems.IntakeSubsytem;
-import first.robot.subsystems.LEDSubsystem;
-import first.robot.subsystems.ShooterSubsystem;
+import first.robot.mechanisms.CommandSwerveDrivetrain;
+import first.robot.mechanisms.FeederMechanism;
+import first.robot.mechanisms.IndexerMechanism;
+import first.robot.mechanisms.IntakeMechanism;
+import first.robot.mechanisms.LEDMechanism;
+import first.robot.mechanisms.ShooterMechanism;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.wpilib.command3.Command;
@@ -62,39 +62,39 @@ import org.wpilib.units.measure.LinearVelocity;
 import org.wpilib.util.Color;
 
 /**
- * Factory class for creating commands with the necessary subsystem dependencies.
+ * Factory class for creating commands with the necessary mechanism dependencies.
  */
 public class CommandFactory {
-  private final CommandSwerveDrivetrain drivetrainSubsystem;
-  private final ShooterSubsystem shooterSubsystem;
-  private final IndexerSubsystem indexerSubsystem;
-  private final FeederSubsystem feederSubsystem;
-  private final IntakeSubsytem intakeSubsystem;
-  private final LEDSubsystem ledSubsystem;
+  private final CommandSwerveDrivetrain drivetrainMechanism;
+  private final ShooterMechanism shooterMechanism;
+  private final IndexerMechanism indexerMechanism;
+  private final FeederMechanism feederMechanism;
+  private final IntakeMechanism intakeMechanism;
+  private final LEDMechanism ledMechanism;
 
   /**
-   * Constructor for Commandfactory, takes in all subsystems as parameters to use in command creation methods.
+   * Constructor for Commandfactory, takes in all mechanisms as parameters to use in command creation methods.
    * 
-   * @param drivetrainSubsystem drivetrain subsystem
-   * @param shooterSubsystem shooter subsystem
-   * @param indexerSubsystem indexer subsystem
-   * @param feederSubsystem feeder subsystem
-   * @param intakeSubsystem intake subsystem
-   * @param ledSubsystem led subsystem
+   * @param drivetrainMechanism drivetrain mechanism
+   * @param shooterMechanism shooter mechanism
+   * @param indexerMechanism indexer mechanism
+   * @param feederMechanism feeder mechanism
+   * @param intakeMechanism intake mechanism
+   * @param ledMechanism led mechanism
    */
   public CommandFactory(
-      CommandSwerveDrivetrain drivetrainSubsystem,
-      ShooterSubsystem shooterSubsystem,
-      IndexerSubsystem indexerSubsystem,
-      FeederSubsystem feederSubsystem,
-      IntakeSubsytem intakeSubsystem,
-      LEDSubsystem ledSubsystem) {
-    this.drivetrainSubsystem = drivetrainSubsystem;
-    this.shooterSubsystem = shooterSubsystem;
-    this.indexerSubsystem = indexerSubsystem;
-    this.feederSubsystem = feederSubsystem;
-    this.intakeSubsystem = intakeSubsystem;
-    this.ledSubsystem = ledSubsystem;
+      CommandSwerveDrivetrain drivetrainMechanism,
+      ShooterMechanism shooterMechanism,
+      IndexerMechanism indexerMechanism,
+      FeederMechanism feederMechanism,
+      IntakeMechanism intakeMechanism,
+      LEDMechanism ledMechanism) {
+    this.drivetrainMechanism = drivetrainMechanism;
+    this.shooterMechanism = shooterMechanism;
+    this.indexerMechanism = indexerMechanism;
+    this.feederMechanism = feederMechanism;
+    this.intakeMechanism = intakeMechanism;
+    this.ledMechanism = ledMechanism;
   }
 
   /**
@@ -104,7 +104,7 @@ public class CommandFactory {
    */
   public Command shootAtHub() {
     return shootAtTarget(
-        () -> drivetrainSubsystem.getState().Pose,
+        () -> drivetrainMechanism.getState().Pose,
           t -> MatchState.getAlliance().orElse(BLUE) == BLUE ? HUB_BLUE : HUB_RED);
   }
 
@@ -118,7 +118,7 @@ public class CommandFactory {
    * @return a new command to shuttle fuel to the corner
    */
   public Command shuttleToCorner() {
-    return shootAtTarget(() -> drivetrainSubsystem.getState().Pose, targetTranslation -> {
+    return shootAtTarget(() -> drivetrainMechanism.getState().Pose, targetTranslation -> {
       Translation2d target;
       if (MatchState.getAlliance().orElse(BLUE) == BLUE) {
         target = targetTranslation.getY() > FIELD_WIDTH.in(Meters) / 2.0 ? SHUTTLE_BLUE_HIGH : SHUTTLE_BLUE_LOW;
@@ -154,7 +154,7 @@ public class CommandFactory {
         .withDriveRequestType(DriveRequestType.Velocity)
         .withSteerRequestType(SteerRequestType.MotionMagicExpo);
 
-    return drivetrainSubsystem.applyRequest(
+    return drivetrainMechanism.applyRequest(
         () -> drive.withVelocityX(translationXSupplier.get())
             .withVelocityY(translationYSupplier.get())
             .withRotationalRate(omegaSupplier.get()));
@@ -163,11 +163,11 @@ public class CommandFactory {
   public Command ejectCommand() {
     return Command.noRequirements(coroutine -> {
       coroutine.awaitAll(
-          intakeSubsystem.eject(),
-            indexerSubsystem.eject(),
-            feederSubsystem.eject(),
-            shooterSubsystem.eject(),
-            ledSubsystem
+          intakeMechanism.eject(),
+            indexerMechanism.eject(),
+            feederMechanism.eject(),
+            shooterMechanism.eject(),
+            ledMechanism
                 .runPattern(LEDPattern.rainbow(255, 255).scrollAtRelativeVelocity(Percent.per(Second).of(200))));
     }).named("Eject");
   }
@@ -176,8 +176,8 @@ public class CommandFactory {
     final LEDPattern patternOne = LEDPattern.gradient(GradientType.DISCONTINUOUS, Color.BLACK, Color.ORANGE)
         .scrollAtRelativeVelocity(Percent.per(Second).of(200));
     final LEDPattern patternTwo = patternOne.reversed();
-    return Command.requiring(intakeSubsystem).executing(coroutine -> {
-      coroutine.fork(intakeSubsystem.intake(), ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
+    return Command.requiring(intakeMechanism).executing(coroutine -> {
+      coroutine.fork(intakeMechanism.intake(), ledMechanism.runPatternOnHalves(patternOne, patternTwo));
       while (RobotState.isEnabled()) {
         coroutine.yield();
       }
@@ -208,7 +208,7 @@ public class CommandFactory {
     DoubleEntry retractedThresholdSubscriber = table.getDoubleTopic("Retracted Threshold (R)").getEntry(0.0);
     retractedThresholdSubscriber.set(RETRACTED_THRESHOLD.in(Rotations));
 
-    return Command.requiring(intakeSubsystem, shooterSubsystem, feederSubsystem, indexerSubsystem)
+    return Command.requiring(intakeMechanism, shooterMechanism, feederMechanism, indexerMechanism)
         .executing(coroutine -> {
           Translation2d hubTranslation;
           var alliance = MatchState.getAlliance();
@@ -228,22 +228,22 @@ public class CommandFactory {
 
           // Get ready to shoot
           coroutine.fork(
-              intakeSubsystem.stop(),
-                feederSubsystem.stop(),
-                indexerSubsystem.stop(),
-                shooterSubsystem.runFlywheel(flywheelVelocity));
+              intakeMechanism.stop(),
+                feederMechanism.stop(),
+                indexerMechanism.stop(),
+                shooterMechanism.runFlywheel(flywheelVelocity));
 
           // Wait until the flywheel is up to speed
-          coroutine.waitUntil(shooterSubsystem::isFlywheelAtVelocity);
+          coroutine.waitUntil(shooterMechanism::isFlywheelAtVelocity);
           coroutine.wait(Milliseconds.of(6.0));
 
           // Shoot
-          coroutine.fork(feederSubsystem.runFeeder(feederVelocity));
+          coroutine.fork(feederMechanism.runFeeder(feederVelocity));
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(indexerSubsystem.runIndexer(indexerVelocity));
+          coroutine.fork(indexerMechanism.runIndexer(indexerVelocity));
           coroutine.wait(Milliseconds.of(12.0));
           coroutine.fork(
-              intakeSubsystem.shootingSequence(
+              intakeMechanism.shootingSequence(
                   unjamDuration,
                     retractDelay,
                     retractCurrent,
@@ -267,33 +267,33 @@ public class CommandFactory {
 
     return Command
         .requiring(
-            intakeSubsystem,
-              shooterSubsystem,
-              feederSubsystem,
-              indexerSubsystem,
-              drivetrainSubsystem,
-              ledSubsystem)
+            intakeMechanism,
+              shooterMechanism,
+              feederMechanism,
+              indexerMechanism,
+              drivetrainMechanism,
+              ledMechanism)
         .executing(coroutine -> {
           // Get ready to shoot
           coroutine.fork(
-              intakeSubsystem.stop(),
-                feederSubsystem.stop(),
-                indexerSubsystem.stop(),
-                shooterSubsystem.runFlywheel(shooterAngularVelocity),
-                drivetrainSubsystem.applyRequest(() -> swerveBrakeRequest),
-                ledSubsystem.off());
+              intakeMechanism.stop(),
+                feederMechanism.stop(),
+                indexerMechanism.stop(),
+                shooterMechanism.runFlywheel(shooterAngularVelocity),
+                drivetrainMechanism.applyRequest(() -> swerveBrakeRequest),
+                ledMechanism.off());
 
           // Wait until the flywheel is up to speed
-          coroutine.waitUntil(shooterSubsystem::isFlywheelAtVelocity);
+          coroutine.waitUntil(shooterMechanism::isFlywheelAtVelocity);
 
           // Shoot, using staggered mechanism starts
-          coroutine.fork(ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
+          coroutine.fork(ledMechanism.runPatternOnHalves(patternOne, patternTwo));
           coroutine.wait(Milliseconds.of(6.0));
-          coroutine.fork(feederSubsystem.feedShooter());
+          coroutine.fork(feederMechanism.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(indexerSubsystem.feedShooter());
+          coroutine.fork(indexerMechanism.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(intakeSubsystem.shootingSequence());
+          coroutine.fork(intakeMechanism.shootingSequence());
           while (!RobotController.isBrownedOut()) {
             coroutine.yield();
           }
@@ -318,28 +318,28 @@ public class CommandFactory {
 
     return Command
         .requiring(
-            intakeSubsystem,
-              shooterSubsystem,
-              feederSubsystem,
-              indexerSubsystem,
-              drivetrainSubsystem,
-              ledSubsystem)
+            intakeMechanism,
+              shooterMechanism,
+              feederMechanism,
+              indexerMechanism,
+              drivetrainMechanism,
+              ledMechanism)
         .executing(coroutine -> {
           // Create object to share the shooting state with forked commands
           ShootingState shootingState = new ShootingState();
 
           // Fork the commands to prepare to shoot
           coroutine.fork(
-              intakeSubsystem.stop(),
-                feederSubsystem.stop(),
-                indexerSubsystem.stop(),
-                shooterSubsystem.runFlywheel(() -> shootingState.shooterSpeed),
-                drivetrainSubsystem.pointAtTarget(targetTranslationSelector, SHOOTER_OFFSET_ANGLE),
-                ledSubsystem
-                    .ledSegments(Color.GREEN, () -> shootingState.isAimReady, shooterSubsystem::isFlywheelAtVelocity));
+              intakeMechanism.stop(),
+                feederMechanism.stop(),
+                indexerMechanism.stop(),
+                shooterMechanism.runFlywheel(() -> shootingState.shooterSpeed),
+                drivetrainMechanism.pointAtTarget(targetTranslationSelector, SHOOTER_OFFSET_ANGLE),
+                ledMechanism
+                    .ledSegments(Color.GREEN, () -> shootingState.isAimReady, shooterMechanism::isFlywheelAtVelocity));
 
           // Wait until we're aimed and the shooter is ready
-          while (!shootingState.isAimReady || !shooterSubsystem.isFlywheelAtVelocity()) {
+          while (!shootingState.isAimReady || !shooterMechanism.isFlywheelAtVelocity()) {
             // Calculate target information and update shooting state for forked commands
             var robotPose = robotPoseSupplier.get();
             var targetTranslation = targetTranslationSelector.apply(robotPoseSupplier.get().getTranslation());
@@ -355,13 +355,13 @@ public class CommandFactory {
           }
 
           // Ready! Shoot, using staggered mechanism starts
-          coroutine.fork(ledSubsystem.runPatternOnHalves(patternOne, patternTwo));
+          coroutine.fork(ledMechanism.runPatternOnHalves(patternOne, patternTwo));
           coroutine.wait(Milliseconds.of(6.0));
-          coroutine.fork(feederSubsystem.feedShooter());
+          coroutine.fork(feederMechanism.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(indexerSubsystem.feedShooter());
+          coroutine.fork(indexerMechanism.feedShooter());
           coroutine.wait(Milliseconds.of(12.0));
-          coroutine.fork(intakeSubsystem.shootingSequence());
+          coroutine.fork(intakeMechanism.shootingSequence());
         })
         .named("Tune Shoot");
   }

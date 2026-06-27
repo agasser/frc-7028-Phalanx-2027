@@ -1,4 +1,4 @@
-package first.robot.subsystems;
+package first.robot.mechanisms;
 
 import static org.wpilib.hardware.led.LEDPattern.gradient;
 import static org.wpilib.hardware.led.LEDPattern.kOff;
@@ -25,9 +25,9 @@ import org.wpilib.units.measure.Time;
 import org.wpilib.util.Color;
 
 /**
- * Subsystem for controlling the LEDs
+ * Mechanism for controlling the LEDs
  */
-public class LEDSubsystem extends Mechanism {
+public class LEDMechanism extends Mechanism {
 
   private static final int DEVICE_ID_LEDS = 0;
   private static final int LED_STRIP_LENGTH = 36;
@@ -45,9 +45,9 @@ public class LEDSubsystem extends Mechanism {
   private final AddressableLEDBufferView halfTwoBack;
 
   /**
-   * Creates a new LEDSubsystem
+   * Creates a new LEDMechanism
    */
-  public LEDSubsystem() {
+  public LEDMechanism() {
     leds.setLength(TOTAL_LEDS);
     leds.setData(ledBuffer);
 

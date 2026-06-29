@@ -1,7 +1,5 @@
 package first.robot.mechanisms;
 
-import static first.robot.Constants.ShootingConstants.HEADING_P;
-
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -46,6 +44,7 @@ public class CommandSwerveDrivetrain extends Mechanism implements VisionMeasurem
   private final TunerSwerveDrivetrain drivetrain;
 
   private static final double kSimLoopPeriod = 0.004; // 4 ms
+  private static final double HEADING_P = 6.0;
   private Notifier m_simNotifier = null;
   private double m_lastSimTime;
 

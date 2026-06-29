@@ -1,27 +1,25 @@
 package first.robot;
 
-import static first.robot.Constants.FeederConstants.FEEDER_FEED_VELOCITY;
 import static first.robot.Constants.FieldConstants.FIELD_WIDTH;
-import static first.robot.Constants.IndexerConstants.INDEXER_FEED_VELOCITY;
-import static first.robot.Constants.IntakeConstants.DEPLOY_SHOOTING_CURRENT;
-import static first.robot.Constants.ShooterConstants.SHOOTER_OFFSET_ANGLE;
 import static first.robot.Constants.ShootingConstants.AIM_TOLERANCE;
 import static first.robot.Constants.ShootingConstants.HUB_BLUE;
 import static first.robot.Constants.ShootingConstants.HUB_RED;
 import static first.robot.Constants.ShootingConstants.HUB_SETPOINTS_BY_DISTANCE_METERS;
-import static first.robot.Constants.ShootingConstants.JAM_DEBOUNCE_TIME;
-import static first.robot.Constants.ShootingConstants.JAM_THRESHOLD;
 import static first.robot.Constants.ShootingConstants.RETRACTED_THRESHOLD;
-import static first.robot.Constants.ShootingConstants.RETRACT_INTAKE_DELAY;
 import static first.robot.Constants.ShootingConstants.SHUTTLE_BLUE_HIGH;
 import static first.robot.Constants.ShootingConstants.SHUTTLE_BLUE_LOW;
 import static first.robot.Constants.ShootingConstants.SHUTTLE_OFFSET_DISTANCE;
 import static first.robot.Constants.ShootingConstants.SHUTTLE_RED_HIGH;
 import static first.robot.Constants.ShootingConstants.SHUTTLE_RED_LOW;
-import static first.robot.Constants.ShootingConstants.UNJAM_DURATION;
 import static first.robot.Constants.TeleopDriveConstants.CENTER_OF_ROTATION;
-import static first.robot.Constants.TeleopDriveConstants.MAX_TELEOP_ANGULAR_VELOCITY;
-import static first.robot.Constants.TeleopDriveConstants.MAX_TELEOP_VELOCITY;
+import static first.robot.mechanisms.FeederMechanism.FEEDER_FEED_VELOCITY;
+import static first.robot.mechanisms.IndexerMechanism.INDEXER_FEED_VELOCITY;
+import static first.robot.mechanisms.IntakeMechanism.DEPLOY_SHOOTING_CURRENT;
+import static first.robot.mechanisms.IntakeMechanism.JAM_DEBOUNCE_TIME;
+import static first.robot.mechanisms.IntakeMechanism.JAM_THRESHOLD;
+import static first.robot.mechanisms.IntakeMechanism.RETRACT_INTAKE_DELAY;
+import static first.robot.mechanisms.IntakeMechanism.UNJAM_DURATION;
+import static first.robot.mechanisms.ShooterMechanism.SHOOTER_OFFSET_ANGLE;
 import static org.wpilib.driverstation.Alliance.BLUE;
 import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Meters;
@@ -146,11 +144,13 @@ public class CommandFactory {
   public Command drive(
       Supplier<LinearVelocity> translationXSupplier,
       Supplier<LinearVelocity> translationYSupplier,
-      Supplier<AngularVelocity> omegaSupplier) {
+      Supplier<AngularVelocity> omegaSupplier,
+      LinearVelocity maxVelocity,
+      AngularVelocity maxAngularVelocity) {
     /* Setting up bindings for necessary control of the swerve drive platform */
     final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric().withCenterOfRotation(CENTER_OF_ROTATION)
-        .withDeadband(MAX_TELEOP_VELOCITY.times(0.01))
-        .withRotationalDeadband(MAX_TELEOP_ANGULAR_VELOCITY.times(0.01))
+        .withDeadband(maxVelocity.times(0.01))
+        .withRotationalDeadband(maxAngularVelocity.times(0.01))
         .withDriveRequestType(DriveRequestType.Velocity)
         .withSteerRequestType(SteerRequestType.MotionMagicExpo);
 

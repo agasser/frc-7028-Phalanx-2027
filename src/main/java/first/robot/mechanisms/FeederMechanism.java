@@ -1,21 +1,15 @@
 package first.robot.mechanisms;
 
 import static first.robot.Constants.CANIVORE_BUS;
-import static first.robot.Constants.FeederConstants.DEVICE_ID_FEEDER_FOLLOWER;
-import static first.robot.Constants.FeederConstants.DEVICE_ID_FEEDER_LEADER;
-import static first.robot.Constants.FeederConstants.FEEDER_EJECT_VELOCITY;
-import static first.robot.Constants.FeederConstants.FEEDER_FEED_VELOCITY;
-import static first.robot.Constants.FeederConstants.FEEDER_PEAK_TORQUE_CURRENT_FORWARD;
-import static first.robot.Constants.FeederConstants.FEEDER_PEAK_TORQUE_CURRENT_REVERSE;
-import static first.robot.Constants.FeederConstants.FEEDER_SLOT_CONFIGS;
-import static first.robot.Constants.FeederConstants.FEEDER_STATOR_CURRENT_LIMIT;
-import static first.robot.Constants.FeederConstants.FEEDER_SUPPLY_CURRENT_LIMIT;
+import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Hertz;
+import static org.wpilib.units.Units.RotationsPerSecond;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.controls.Follower;
@@ -28,11 +22,24 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.units.measure.AngularVelocity;
+import org.wpilib.units.measure.Current;
 
 /**
  * Mechanism for the Feeder.
  */
 public class FeederMechanism extends Mechanism {
+  private static final int DEVICE_ID_FEEDER_LEADER = 20;
+  private static final int DEVICE_ID_FEEDER_FOLLOWER = 21;
+
+  private static final Current FEEDER_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(100);
+  private static final Current FEEDER_PEAK_TORQUE_CURRENT_REVERSE = FEEDER_PEAK_TORQUE_CURRENT_FORWARD.unaryMinus();
+  private static final Current FEEDER_STATOR_CURRENT_LIMIT = Amps.of(110);
+  private static final Current FEEDER_SUPPLY_CURRENT_LIMIT = Amps.of(40);
+  private static final SlotConfigs FEEDER_SLOT_CONFIGS = new SlotConfigs().withKP(3).withKS(3).withKV(0.05);
+
+  public static final AngularVelocity FEEDER_FEED_VELOCITY = RotationsPerSecond.of(95);
+  private static final AngularVelocity FEEDER_EJECT_VELOCITY = RotationsPerSecond.of(-25);
+
   private final TalonFX feederLeaderMotor = new TalonFX(DEVICE_ID_FEEDER_LEADER, CANIVORE_BUS);
   private final TalonFX feederFollowerMotor = new TalonFX(DEVICE_ID_FEEDER_FOLLOWER, CANIVORE_BUS);
 

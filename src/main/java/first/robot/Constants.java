@@ -1,38 +1,23 @@
 package first.robot;
 
 import static first.robot.Constants.FieldConstants.FIELD_WIDTH;
-import static first.robot.Constants.IntakeConstants.RETRACTED_POSITION;
-import static org.wpilib.math.util.Units.degreesToRadians;
-import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Degrees;
-import static org.wpilib.units.Units.DegreesPerSecond;
 import static org.wpilib.units.Units.Inches;
 import static org.wpilib.units.Units.Meters;
-import static org.wpilib.units.Units.Rotations;
 import static org.wpilib.units.Units.RotationsPerSecond;
 import static org.wpilib.units.Units.Seconds;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
-import com.ctre.phoenix6.configs.SlotConfigs;
-import com.ctre.phoenix6.signals.GravityTypeValue;
-import first.robot.generated.TunerConstants;
+import first.robot.mechanisms.IntakeMechanism;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.geometry.Rotation3d;
-import org.wpilib.math.geometry.Transform3d;
 import org.wpilib.math.geometry.Translation2d;
 import org.wpilib.math.geometry.Translation3d;
 import org.wpilib.math.interpolation.InterpolatingDoubleTreeMap;
-import org.wpilib.math.linalg.Matrix;
-import org.wpilib.math.linalg.VecBuilder;
-import org.wpilib.math.numbers.N1;
-import org.wpilib.math.numbers.N3;
 import org.wpilib.units.measure.Angle;
 import org.wpilib.units.measure.AngularVelocity;
-import org.wpilib.units.measure.Current;
 import org.wpilib.units.measure.Distance;
-import org.wpilib.units.measure.LinearVelocity;
 import org.wpilib.units.measure.Time;
 
 public final class Constants {
@@ -78,15 +63,7 @@ public final class Constants {
    * Constants for teleoperated driver control
    */
   public static class TeleopDriveConstants {
-    /** Max velocity the driver can request */
-    public static final LinearVelocity MAX_TELEOP_VELOCITY = TunerConstants.kSpeedAt12Volts;
-    public static final LinearVelocity MAX_DEMO_VELOCITY = TunerConstants.kSpeedAt12Volts.times(0.25);
-    /** Max angular velocity the driver can request */
-    public static final AngularVelocity MAX_TELEOP_ANGULAR_VELOCITY = RotationsPerSecond.of(1.75);
-    public static final AngularVelocity MAX_DEMO_ANGULAR_VELOCITY = RotationsPerSecond.of(0.5);
 
-    /** Multiplier for shooting in teleop to reduce driver speed while shooting */
-    public static final double SHOOT_VELOCITY_MULTIPLIER = 0.325;
     /** Blue reset pose is the blue corner, bumpers against the walls, facing downfield. */
     public static final Pose3d RESET_POSE_BLUE = new Pose3d(
         new Translation3d(ROBOT_LENGTH.in(Meters) / 2.0, ROBOT_WIDTH.in(Meters) / 2.0, 0.0),
@@ -103,171 +80,6 @@ public final class Constants {
   /**
    * Constants for the shooter mechanism
    */
-  public static class ShooterConstants {
-    public static final int DEVICE_ID_FLYWHEEL_LEADER = 26; // Right side
-    public static final int DEVICE_ID_FLYWHEEL_FOLLOWER_0 = 27; // Right side
-    public static final int DEVICE_ID_FLYWHEEL_FOLLOWER_1 = 28; // Left side
-    public static final int DEVICE_ID_FLYWHEEL_FOLLOWER_2 = 29; // Left side
-
-    public static final Current FLYWHEEL_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(160);
-    // Reverse current is positive to allow for increased P for rapid recovery, while avoiding negative output when
-    // there is no load. A tradeoff is that this will increase the time it takes to adjust the flywheel speed downward.
-    public static final Current FLYWHEEL_PEAK_TORQUE_CURRENT_REVERSE = Amps.of(15);
-    public static final Current FLYWHEEL_STATOR_CURRENT_LIMIT = Amps.of(170);
-    public static final Current FLYWHEEL_SUPPLY_CURRENT_LIMIT = Amps.of(80);
-
-    public static final SlotConfigs FLYWHEEL_SLOT_CONFIGS = new SlotConfigs().withKP(23.0).withKV(1.0).withKS(3.0);
-
-    // The robot shoots out the back
-    public static final Rotation2d SHOOTER_OFFSET_ANGLE = Rotation2d.kPi;
-
-    public static final AngularVelocity FLYWHEEL_VELOCITY_TOLERANCE = RotationsPerSecond.of(1.0);
-    public static final AngularVelocity FLYWHEEL_EJECT_VELOCITY = RotationsPerSecond.of(-15);
-
-    public static final Angle FUEL_EXIT_ANGLE = Degrees.of(70);
-  }
-
-  /**
-   * Constants for vision processing
-   */
-  public static class VisionConstants {
-    public static final int DEVICE_ID_MITOCANDRIA = 0;
-    public static final String[] APRILTAG_CAMERA_NAMES = { "limelight-left", "limelight-right", "limelight-back" };
-    public static final Transform3d[] ROBOT_TO_CAMERA_TRANSFORMS = new Transform3d[] {
-        new Transform3d(
-            new Translation3d(Inches.of(-6.230084), Inches.of(-14.513163), Inches.of(15.352343)),
-            new Rotation3d(0.0, degreesToRadians(16.0), Math.PI / 2.0)),
-        new Transform3d(
-            new Translation3d(Inches.of(-6.230084), Inches.of(14.513163), Inches.of(15.352343)),
-            new Rotation3d(0.0, degreesToRadians(16.0), -Math.PI / 2.0)),
-        new Transform3d(
-            new Translation3d(Inches.of(-11.1515), Inches.of(6.75), Inches.of(10.012)),
-            new Rotation3d(0.0, degreesToRadians(26.0), Math.PI)) };
-
-    public static final int LIMELIGHT_BLUE_PIPELINE = 0;
-    public static final int LIMELIGHT_RED_PIPELINE = 1;
-
-    // The standard deviations of our vision estimated poses, which affect correction rate
-    public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS = VecBuilder.fill(2.0, 2.0, 8.0);
-    public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS = VecBuilder.fill(0.5, 0.5, 1.0);
-    public static final double APRILTAG_AMBIGUITY_THRESHOLD = 0.3;
-
-    /** The max average distance for AprilTag measurements to be considered valid */
-    public static final Distance TAG_DISTANCE_THRESHOLD = Meters.of(3.5);
-
-    /** The max distance from the starting pose for AprilTag measurements to be considered valid */
-    public static final Distance STARTING_DISTANCE_THRESHOLD = Meters.of(3.0);
-
-    /** The robot angular velocity threshold for accepting vision measurements */
-    public static final AngularVelocity ANGULAR_VELOCITY_THRESHOLD = DegreesPerSecond.of(720);
-
-    /**
-     * The threshold for the error between the best AprilTag pose estimate and the QuestNav pose measurements for the
-     * QuestNav pose to be considered valid
-     */
-    public static final Distance QUESTNAV_APRILTAG_ERROR_THRESHOLD = Meters.of(0.5);
-  }
-
-  public static class IntakeConstants {
-    // Device IDs
-    public static final int DEVICE_ID_DEPLOY_MOTOR = 10;
-    public static final int DEVICE_ID_ROLLER_MOTOR = 11; // left
-    public static final int DEVICE_ID_ROLLER_FOLLOWER = 12; // right
-    public static final int CHANNEL_ID_DEPLOY_POTENTIOMETER = 3;
-
-    // Roller constants
-    public static final Current ROLLER_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(170);
-    public static final Current ROLLER_PEAK_TORQUE_CURRENT_REVERSE = ROLLER_PEAK_TORQUE_CURRENT_FORWARD.unaryMinus();
-    public static final Current ROLLER_STATOR_CURRENT_LIMIT = Amps.of(190);
-    public static final Current ROLLER_SUPPLY_CURRENT_LIMIT = Amps.of(80);
-    public static final SlotConfigs ROLLER_SLOT_CONFIGS = new SlotConfigs().withKP(12).withKS(5.1);
-
-    public static final AngularVelocity ROLLER_INTAKE_VELOCITY = RotationsPerSecond.of(80.0);
-    public static final AngularVelocity ROLLER_INTAKE_SHOOTING_VELOCITY = RotationsPerSecond.of(40.0);
-    public static final AngularVelocity ROLLER_EJECT_VELOCITY = RotationsPerSecond.of(-30.0);
-
-    // Deploy constants
-    public static final Current DEPLOY_STATOR_CURRENT_LIMIT = Amps.of(40);
-    public static final Current DEPLOY_SUPPLY_CURRENT_LIMIT = Amps.of(30);
-    public static final Current DEPLOY_PEAK_CURRENT_FORWARD = Amps.of(50);
-    public static final Current DEPLOY_PEAK_CURRENT_REVERSE = DEPLOY_PEAK_CURRENT_FORWARD.unaryMinus();
-
-    // Deploy limits in motor angle
-    public static final Angle DEPLOY_REVERSE_LIMIT = Rotations.of(0); // Retracted
-    public static final Angle DEPLOY_FORWARD_LIMIT = Rotations.of(11.10); // Deployed
-    // Deploy limits in potentiometer values
-    public static final double POTENTIOMETER_REVERSE_LIMIT = 0.544;
-    public static final double POTENTIOMETER_FORWARD_LIMIT = 0.913;
-    // Calculated "full range" of the potentiometer in motor rotations, if it was capable of turning all 10 turns
-    public static final Angle POTENTIOMETER_FULL_RANGE = DEPLOY_FORWARD_LIMIT.minus(DEPLOY_REVERSE_LIMIT)
-        .div(POTENTIOMETER_FORWARD_LIMIT - POTENTIOMETER_REVERSE_LIMIT);
-    // The offset of the potentiometer from the actual position of the intake in motor angle
-    // public static final Angle POTENTIOMETER_OFFSET = Rotations.of(-28.13);
-    public static final Angle POTENTIOMETER_OFFSET = Rotations.of(-16.31);
-
-    public static final SlotConfigs DEPLOY_SLOT_CONFIGS = new SlotConfigs().withGravityType(GravityTypeValue.Arm_Cosine)
-        .withKP(5.0)
-        .withKS(0.0)
-        .withKV(0.0);
-    public static final MotionMagicConfigs DEPLOY_MOTION_MAGIC_CONFIGS = new MotionMagicConfigs()
-        .withMotionMagicAcceleration(120.0)
-        .withMotionMagicCruiseVelocity(180.0);
-
-    public static final Angle DEPLOYED_POSITION = DEPLOY_FORWARD_LIMIT.minus(Rotations.of(0.25));
-    public static final Angle RETRACTED_POSITION = DEPLOY_REVERSE_LIMIT.plus(Rotations.of(0.25));
-
-    public static final Pose3d POSE_DEPLOYED = new Pose3d(0.267, 0.0, -0.043, Rotation3d.kZero);
-    public static final Pose3d POSE_RETRACTED = new Pose3d(0.0, 0.0, 0.0, Rotation3d.kZero);
-
-    public static final Angle DEPLOY_TOLERANCE = Rotations.of(0.2);
-    public static final Current DEPLOY_SHOOTING_CURRENT = Amps.of(-29.0);
-  }
-
-  public static class IndexerConstants {
-    public static final int DEVICE_ID_INDEXER_MOTOR_LEADER = 15;
-    public static final int DEVICE_ID_INDEXER_MOTOR_FOLLOWER = 16;
-
-    public static final Current INDEXER_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(80);
-    public static final Current INDEXER_PEAK_TORQUE_CURRENT_REVERSE = INDEXER_PEAK_TORQUE_CURRENT_FORWARD.unaryMinus();
-    public static final Current INDEXER_STATOR_CURRENT_LIMIT = Amps.of(80);
-    public static final Current INDEXER_SUPPLY_CURRENT_LIMIT = Amps.of(15);
-
-    public static final SlotConfigs INDEXER_SLOT_CONFIGS = new SlotConfigs().withKP(0.5).withKV(0.02).withKS(4.0);
-
-    public static final AngularVelocity INDEXER_FEED_VELOCITY = RotationsPerSecond.of(95);
-    public static final AngularVelocity INDEXER_EJECT_VELOCITY = RotationsPerSecond.of(-80);
-
-  }
-
-  /**
-   * Constants for the Feeder Mechanism
-   */
-  public static class FeederConstants {
-    public static final int DEVICE_ID_FEEDER_LEADER = 20;
-    public static final int DEVICE_ID_FEEDER_FOLLOWER = 21;
-
-    public static final Current FEEDER_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(100);
-    public static final Current FEEDER_PEAK_TORQUE_CURRENT_REVERSE = FEEDER_PEAK_TORQUE_CURRENT_FORWARD.unaryMinus();
-    public static final Current FEEDER_STATOR_CURRENT_LIMIT = Amps.of(110);
-    public static final Current FEEDER_SUPPLY_CURRENT_LIMIT = Amps.of(40);
-    public static final SlotConfigs FEEDER_SLOT_CONFIGS = new SlotConfigs().withKP(3).withKS(3).withKV(0.05);
-
-    public static final AngularVelocity FEEDER_FEED_VELOCITY = RotationsPerSecond.of(95);
-    public static final AngularVelocity FEEDER_EJECT_VELOCITY = RotationsPerSecond.of(-25);
-  }
-
-  /**
-   * Constants for the LEDs
-   */
-  public static class LEDConstants {
-    public static final int DEVICE_ID_LEDS = 9;
-
-    public static final int LED_STRIP_LENGTH = 36;
-    public static final int STRIP_COUNT = 2;
-
-    public static final int TOTAL_LEDS = LED_STRIP_LENGTH * STRIP_COUNT;
-  }
-
   /**
    * Constants related to shooting fuel
    * <p>
@@ -275,14 +87,13 @@ public final class Constants {
    */
   public static class ShootingConstants {
     public static final Angle AIM_TOLERANCE = Degrees.of(1.5);
-    public static final double HEADING_P = 6.0;
 
     // Parameters for the intake shooting sequence
     public static final Time RETRACT_INTAKE_DELAY = Seconds.of(0.18);
     public static final Time JAM_DEBOUNCE_TIME = Seconds.of(0.5);
     public static final AngularVelocity JAM_THRESHOLD = RotationsPerSecond.of(-1.0);
     public static final Time UNJAM_DURATION = Seconds.of(0.25);
-    public static final Angle RETRACTED_THRESHOLD = RETRACTED_POSITION;
+    public static final Angle RETRACTED_THRESHOLD = IntakeMechanism.RETRACTED_POSITION;
 
     private static InterpolatingDoubleTreeMap createShooterInterpolator() {
       var map = new InterpolatingDoubleTreeMap();

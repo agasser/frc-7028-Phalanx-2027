@@ -1,26 +1,33 @@
 package first.robot.opmodes;
 
-import static first.robot.Constants.TeleopDriveConstants.MAX_DEMO_ANGULAR_VELOCITY;
-import static first.robot.Constants.TeleopDriveConstants.MAX_DEMO_VELOCITY;
 import static first.robot.Constants.TeleopDriveConstants.RESET_POSE_BLUE;
 import static first.robot.Constants.TeleopDriveConstants.RESET_POSE_RED;
 import static org.wpilib.driverstation.Alliance.BLUE;
 import static org.wpilib.units.Units.Meters;
+import static org.wpilib.units.Units.RotationsPerSecond;
 
 import first.robot.CommandFactory;
 import first.robot.Robot;
+import first.robot.generated.TunerConstants;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.driverstation.MatchState;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.opmode.PeriodicOpMode;
 import org.wpilib.opmode.Teleop;
+import org.wpilib.units.measure.AngularVelocity;
+import org.wpilib.units.measure.LinearVelocity;
 
 /**
  * Competition teleop mode
  */
 @Teleop(name = "Xbox Controller", backgroundColor = "green", textColor = "black", description = "Xbox controller teleop mode")
 public class XboxOpMode extends PeriodicOpMode {
+
+  /** Max velocity the driver can request */
+  protected static final LinearVelocity MAX_TELEOP_VELOCITY = TunerConstants.kSpeedAt12Volts;
+  /** Max angular velocity the driver can request */
+  protected static final AngularVelocity MAX_TELEOP_ANGULAR_VELOCITY = RotationsPerSecond.of(1.75);
 
   protected final Robot robot;
 
@@ -50,9 +57,11 @@ public class XboxOpMode extends PeriodicOpMode {
     // Default drivetrain command for teleop control
     robot.drivetrain.setDefaultCommand(
         commandFactory.drive(
-            () -> MAX_DEMO_VELOCITY.times(-squareAxis(driverGamepad.getLeftX())),
-              () -> MAX_DEMO_VELOCITY.times(-squareAxis(driverGamepad.getLeftY())),
-              () -> MAX_DEMO_ANGULAR_VELOCITY.times(-squareAxis(driverGamepad.getRightY()))));
+            () -> MAX_TELEOP_VELOCITY.times(-squareAxis(driverGamepad.getLeftX())),
+              () -> MAX_TELEOP_VELOCITY.times(-squareAxis(driverGamepad.getLeftY())),
+              () -> MAX_TELEOP_ANGULAR_VELOCITY.times(-squareAxis(driverGamepad.getRightY())),
+              MAX_TELEOP_VELOCITY,
+              MAX_TELEOP_ANGULAR_VELOCITY));
 
     driverGamepad.rightTrigger().whileTrue(commandFactory.shootAtHub());
 

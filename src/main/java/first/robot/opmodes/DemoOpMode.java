@@ -1,25 +1,32 @@
 package first.robot.opmodes;
 
-import static first.robot.Constants.TeleopDriveConstants.MAX_DEMO_ANGULAR_VELOCITY;
-import static first.robot.Constants.TeleopDriveConstants.MAX_DEMO_VELOCITY;
 import static first.robot.Constants.TeleopDriveConstants.RESET_POSE_BLUE;
 import static first.robot.Constants.TeleopDriveConstants.RESET_POSE_RED;
 import static org.wpilib.driverstation.Alliance.BLUE;
+import static org.wpilib.units.Units.RotationsPerSecond;
 
 import first.robot.CommandFactory;
 import first.robot.Robot;
+import first.robot.generated.TunerConstants;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.button.CommandJoystick;
 import org.wpilib.driverstation.MatchState;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.opmode.PeriodicOpMode;
 import org.wpilib.opmode.Teleop;
+import org.wpilib.units.measure.AngularVelocity;
+import org.wpilib.units.measure.LinearVelocity;
 
 /**
  * Competition teleop mode
  */
 @Teleop(name = "Demo", backgroundColor = "blue", textColor = "yellow", description = "Demo teleop mode")
 public class DemoOpMode extends PeriodicOpMode {
+
+  /** Max velocity the driver can request */
+  private static final LinearVelocity MAX_DEMO_VELOCITY = TunerConstants.kSpeedAt12Volts.times(0.25);
+  /** Max angular velocity the driver can request */
+  private static final AngularVelocity MAX_DEMO_ANGULAR_VELOCITY = RotationsPerSecond.of(0.5);
 
   protected final Robot robot;
 
@@ -47,7 +54,9 @@ public class DemoOpMode extends PeriodicOpMode {
         commandFactory.drive(
             () -> MAX_DEMO_VELOCITY.times(-squareAxis(leftJoystick.getY())),
               () -> MAX_DEMO_VELOCITY.times(-squareAxis(leftJoystick.getX())),
-              () -> MAX_DEMO_ANGULAR_VELOCITY.times(-squareAxis(rightJoystick.getX()))));
+              () -> MAX_DEMO_ANGULAR_VELOCITY.times(-squareAxis(rightJoystick.getX())),
+              MAX_DEMO_VELOCITY,
+              MAX_DEMO_ANGULAR_VELOCITY));
 
     rightJoystick.trigger().whileTrue(commandFactory.demoToss());
 

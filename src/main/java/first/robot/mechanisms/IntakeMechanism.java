@@ -5,49 +5,20 @@
 package first.robot.mechanisms;
 
 import static first.robot.Constants.CANIVORE_BUS;
-import static first.robot.Constants.IntakeConstants.CHANNEL_ID_DEPLOY_POTENTIOMETER;
-import static first.robot.Constants.IntakeConstants.DEPLOYED_POSITION;
-import static first.robot.Constants.IntakeConstants.DEPLOY_FORWARD_LIMIT;
-import static first.robot.Constants.IntakeConstants.DEPLOY_MOTION_MAGIC_CONFIGS;
-import static first.robot.Constants.IntakeConstants.DEPLOY_PEAK_CURRENT_FORWARD;
-import static first.robot.Constants.IntakeConstants.DEPLOY_PEAK_CURRENT_REVERSE;
-import static first.robot.Constants.IntakeConstants.DEPLOY_REVERSE_LIMIT;
-import static first.robot.Constants.IntakeConstants.DEPLOY_SHOOTING_CURRENT;
-import static first.robot.Constants.IntakeConstants.DEPLOY_SLOT_CONFIGS;
-import static first.robot.Constants.IntakeConstants.DEPLOY_STATOR_CURRENT_LIMIT;
-import static first.robot.Constants.IntakeConstants.DEPLOY_SUPPLY_CURRENT_LIMIT;
-import static first.robot.Constants.IntakeConstants.DEPLOY_TOLERANCE;
-import static first.robot.Constants.IntakeConstants.DEVICE_ID_DEPLOY_MOTOR;
-import static first.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_FOLLOWER;
-import static first.robot.Constants.IntakeConstants.DEVICE_ID_ROLLER_MOTOR;
-import static first.robot.Constants.IntakeConstants.POSE_DEPLOYED;
-import static first.robot.Constants.IntakeConstants.POSE_RETRACTED;
-import static first.robot.Constants.IntakeConstants.POTENTIOMETER_FULL_RANGE;
-import static first.robot.Constants.IntakeConstants.POTENTIOMETER_OFFSET;
-import static first.robot.Constants.IntakeConstants.RETRACTED_POSITION;
-import static first.robot.Constants.IntakeConstants.ROLLER_EJECT_VELOCITY;
-import static first.robot.Constants.IntakeConstants.ROLLER_INTAKE_SHOOTING_VELOCITY;
-import static first.robot.Constants.IntakeConstants.ROLLER_INTAKE_VELOCITY;
-import static first.robot.Constants.IntakeConstants.ROLLER_PEAK_TORQUE_CURRENT_FORWARD;
-import static first.robot.Constants.IntakeConstants.ROLLER_PEAK_TORQUE_CURRENT_REVERSE;
-import static first.robot.Constants.IntakeConstants.ROLLER_SLOT_CONFIGS;
-import static first.robot.Constants.IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT;
-import static first.robot.Constants.IntakeConstants.ROLLER_SUPPLY_CURRENT_LIMIT;
-import static first.robot.Constants.ShootingConstants.JAM_DEBOUNCE_TIME;
-import static first.robot.Constants.ShootingConstants.JAM_THRESHOLD;
-import static first.robot.Constants.ShootingConstants.RETRACTED_THRESHOLD;
-import static first.robot.Constants.ShootingConstants.RETRACT_INTAKE_DELAY;
-import static first.robot.Constants.ShootingConstants.UNJAM_DURATION;
+import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Hertz;
 import static org.wpilib.units.Units.Rotations;
+import static org.wpilib.units.Units.RotationsPerSecond;
 import static org.wpilib.units.Units.Seconds;
 import static org.wpilib.units.Units.Value;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
@@ -57,6 +28,7 @@ import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -68,6 +40,7 @@ import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.rotation.AnalogPotentiometer;
 import org.wpilib.math.filter.Debouncer;
 import org.wpilib.math.geometry.Pose3d;
+import org.wpilib.math.geometry.Rotation3d;
 import org.wpilib.units.measure.Angle;
 import org.wpilib.units.measure.AngularVelocity;
 import org.wpilib.units.measure.Current;
@@ -78,6 +51,56 @@ import org.wpilib.units.measure.Time;
  */
 @Logged(strategy = Logged.Strategy.OPT_IN)
 public class IntakeMechanism extends Mechanism {
+  private static final int DEVICE_ID_DEPLOY_MOTOR = 10;
+  private static final int DEVICE_ID_ROLLER_MOTOR = 11; // left
+  private static final int DEVICE_ID_ROLLER_FOLLOWER = 12; // right
+  private static final int CHANNEL_ID_DEPLOY_POTENTIOMETER = 3;
+
+  private static final Current ROLLER_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(170);
+  private static final Current ROLLER_PEAK_TORQUE_CURRENT_REVERSE = ROLLER_PEAK_TORQUE_CURRENT_FORWARD.unaryMinus();
+  private static final Current ROLLER_STATOR_CURRENT_LIMIT = Amps.of(190);
+  private static final Current ROLLER_SUPPLY_CURRENT_LIMIT = Amps.of(80);
+  private static final SlotConfigs ROLLER_SLOT_CONFIGS = new SlotConfigs().withKP(12).withKS(5.1);
+
+  private static final AngularVelocity ROLLER_INTAKE_VELOCITY = RotationsPerSecond.of(80.0);
+  private static final AngularVelocity ROLLER_INTAKE_SHOOTING_VELOCITY = RotationsPerSecond.of(40.0);
+  private static final AngularVelocity ROLLER_EJECT_VELOCITY = RotationsPerSecond.of(-30.0);
+
+  private static final Current DEPLOY_STATOR_CURRENT_LIMIT = Amps.of(40);
+  private static final Current DEPLOY_SUPPLY_CURRENT_LIMIT = Amps.of(30);
+  private static final Current DEPLOY_PEAK_CURRENT_FORWARD = Amps.of(50);
+  private static final Current DEPLOY_PEAK_CURRENT_REVERSE = DEPLOY_PEAK_CURRENT_FORWARD.unaryMinus();
+
+  private static final Angle DEPLOY_REVERSE_LIMIT = Rotations.of(0); // Retracted
+  private static final Angle DEPLOY_FORWARD_LIMIT = Rotations.of(11.10); // Deployed
+  private static final double POTENTIOMETER_REVERSE_LIMIT = 0.544;
+  private static final double POTENTIOMETER_FORWARD_LIMIT = 0.913;
+  private static final Angle POTENTIOMETER_FULL_RANGE = DEPLOY_FORWARD_LIMIT.minus(DEPLOY_REVERSE_LIMIT)
+      .div(POTENTIOMETER_FORWARD_LIMIT - POTENTIOMETER_REVERSE_LIMIT);
+  private static final Angle POTENTIOMETER_OFFSET = Rotations.of(-16.31);
+
+  private static final SlotConfigs DEPLOY_SLOT_CONFIGS = new SlotConfigs().withGravityType(GravityTypeValue.Arm_Cosine)
+      .withKP(5.0)
+      .withKS(0.0)
+      .withKV(0.0);
+  private static final MotionMagicConfigs DEPLOY_MOTION_MAGIC_CONFIGS = new MotionMagicConfigs()
+      .withMotionMagicAcceleration(120.0)
+      .withMotionMagicCruiseVelocity(180.0);
+
+  private static final Angle DEPLOYED_POSITION = DEPLOY_FORWARD_LIMIT.minus(Rotations.of(0.25));
+  public static final Angle RETRACTED_POSITION = DEPLOY_REVERSE_LIMIT.plus(Rotations.of(0.25));
+
+  private static final Pose3d POSE_DEPLOYED = new Pose3d(0.267, 0.0, -0.043, Rotation3d.kZero);
+  private static final Pose3d POSE_RETRACTED = new Pose3d(0.0, 0.0, 0.0, Rotation3d.kZero);
+
+  private static final Angle DEPLOY_TOLERANCE = Rotations.of(0.2);
+  public static final Current DEPLOY_SHOOTING_CURRENT = Amps.of(-29.0);
+
+  public static final Time RETRACT_INTAKE_DELAY = Seconds.of(0.18);
+  public static final Time JAM_DEBOUNCE_TIME = Seconds.of(0.5);
+  public static final AngularVelocity JAM_THRESHOLD = RotationsPerSecond.of(-1.0);
+  public static final Time UNJAM_DURATION = Seconds.of(0.25);
+  public static final Angle RETRACTED_THRESHOLD = RETRACTED_POSITION;
 
   private final TalonFX rollerLeaderMotor = new TalonFX(DEVICE_ID_ROLLER_MOTOR, CANIVORE_BUS);
   private final TalonFX rollerFollowerMotor = new TalonFX(DEVICE_ID_ROLLER_FOLLOWER, CANIVORE_BUS);

@@ -2,17 +2,7 @@ package first.robot.mechanisms;
 
 import static com.ctre.phoenix6.signals.NeutralModeValue.Coast;
 import static first.robot.Constants.CANIVORE_BUS;
-import static first.robot.Constants.ShooterConstants.DEVICE_ID_FLYWHEEL_FOLLOWER_0;
-import static first.robot.Constants.ShooterConstants.DEVICE_ID_FLYWHEEL_FOLLOWER_1;
-import static first.robot.Constants.ShooterConstants.DEVICE_ID_FLYWHEEL_FOLLOWER_2;
-import static first.robot.Constants.ShooterConstants.DEVICE_ID_FLYWHEEL_LEADER;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_EJECT_VELOCITY;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_PEAK_TORQUE_CURRENT_FORWARD;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_PEAK_TORQUE_CURRENT_REVERSE;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_SLOT_CONFIGS;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_STATOR_CURRENT_LIMIT;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_SUPPLY_CURRENT_LIMIT;
-import static first.robot.Constants.ShooterConstants.FLYWHEEL_VELOCITY_TOLERANCE;
+import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Hertz;
 import static org.wpilib.units.Units.RotationsPerSecond;
 
@@ -21,6 +11,7 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.controls.Follower;
@@ -34,13 +25,34 @@ import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.util.MathUtil;
 import org.wpilib.units.measure.AngularAcceleration;
 import org.wpilib.units.measure.AngularVelocity;
+import org.wpilib.units.measure.Current;
 
 /** Shooter mechanism: turret yaw + pitch + flywheel. */
 @Logged(strategy = Logged.Strategy.OPT_IN)
 public class ShooterMechanism extends Mechanism {
+  private static final int DEVICE_ID_FLYWHEEL_LEADER = 26; // Right side
+  private static final int DEVICE_ID_FLYWHEEL_FOLLOWER_0 = 27; // Right side
+  private static final int DEVICE_ID_FLYWHEEL_FOLLOWER_1 = 28; // Left side
+  private static final int DEVICE_ID_FLYWHEEL_FOLLOWER_2 = 29; // Left side
+
+  private static final Current FLYWHEEL_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(160);
+  // Reverse current is positive to allow for increased P for rapid recovery, while avoiding negative output when
+  // there is no load. A tradeoff is that this will increase the time it takes to adjust the flywheel speed downward.
+  private static final Current FLYWHEEL_PEAK_TORQUE_CURRENT_REVERSE = Amps.of(15);
+  private static final Current FLYWHEEL_STATOR_CURRENT_LIMIT = Amps.of(170);
+  private static final Current FLYWHEEL_SUPPLY_CURRENT_LIMIT = Amps.of(80);
+
+  private static final SlotConfigs FLYWHEEL_SLOT_CONFIGS = new SlotConfigs().withKP(23.0).withKV(1.0).withKS(3.0);
+
+  public static final Rotation2d SHOOTER_OFFSET_ANGLE = Rotation2d.kPi;
+
+  private static final AngularVelocity FLYWHEEL_VELOCITY_TOLERANCE = RotationsPerSecond.of(1.0);
+  private static final AngularVelocity FLYWHEEL_EJECT_VELOCITY = RotationsPerSecond.of(-15);
+
   private final TalonFX flywheelLeaderMotor = new TalonFX(DEVICE_ID_FLYWHEEL_LEADER, CANIVORE_BUS);
   private final TalonFX flywheelFollower0Motor = new TalonFX(DEVICE_ID_FLYWHEEL_FOLLOWER_0, CANIVORE_BUS);
   private final TalonFX flywheelFollower1Motor = new TalonFX(DEVICE_ID_FLYWHEEL_FOLLOWER_1, CANIVORE_BUS);

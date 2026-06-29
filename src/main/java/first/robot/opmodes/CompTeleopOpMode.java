@@ -1,9 +1,9 @@
 package first.robot.opmodes;
 
-import static first.robot.Constants.TeleopDriveConstants.MAX_TELEOP_ANGULAR_VELOCITY;
-import static first.robot.Constants.TeleopDriveConstants.MAX_TELEOP_VELOCITY;
 import static first.robot.Constants.TeleopDriveConstants.RESET_POSE_BLUE;
 import static first.robot.Constants.TeleopDriveConstants.RESET_POSE_RED;
+import static first.robot.opmodes.XboxOpMode.MAX_TELEOP_ANGULAR_VELOCITY;
+import static first.robot.opmodes.XboxOpMode.MAX_TELEOP_VELOCITY;
 import static org.wpilib.driverstation.Alliance.BLUE;
 import static org.wpilib.units.Units.Meters;
 
@@ -53,7 +53,9 @@ public class CompTeleopOpMode extends PeriodicOpMode {
         commandFactory.drive(
             () -> MAX_TELEOP_VELOCITY.times(-squareAxis(leftJoystick.getY())),
               () -> MAX_TELEOP_VELOCITY.times(-squareAxis(leftJoystick.getX())),
-              () -> MAX_TELEOP_ANGULAR_VELOCITY.times(-squareAxis(rightJoystick.getX()))));
+              () -> MAX_TELEOP_ANGULAR_VELOCITY.times(-squareAxis(rightJoystick.getX())),
+              MAX_TELEOP_VELOCITY,
+              MAX_TELEOP_ANGULAR_VELOCITY));
 
     rightJoystick.trigger().whileTrue(commandFactory.shootAtHub());
 

@@ -1,21 +1,15 @@
 package first.robot.mechanisms;
 
 import static first.robot.Constants.CANIVORE_BUS;
-import static first.robot.Constants.IndexerConstants.DEVICE_ID_INDEXER_MOTOR_FOLLOWER;
-import static first.robot.Constants.IndexerConstants.DEVICE_ID_INDEXER_MOTOR_LEADER;
-import static first.robot.Constants.IndexerConstants.INDEXER_EJECT_VELOCITY;
-import static first.robot.Constants.IndexerConstants.INDEXER_FEED_VELOCITY;
-import static first.robot.Constants.IndexerConstants.INDEXER_PEAK_TORQUE_CURRENT_FORWARD;
-import static first.robot.Constants.IndexerConstants.INDEXER_PEAK_TORQUE_CURRENT_REVERSE;
-import static first.robot.Constants.IndexerConstants.INDEXER_SLOT_CONFIGS;
-import static first.robot.Constants.IndexerConstants.INDEXER_STATOR_CURRENT_LIMIT;
-import static first.robot.Constants.IndexerConstants.INDEXER_SUPPLY_CURRENT_LIMIT;
+import static org.wpilib.units.Units.Amps;
 import static org.wpilib.units.Units.Hertz;
+import static org.wpilib.units.Units.RotationsPerSecond;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.controls.Follower;
@@ -28,11 +22,24 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.units.measure.AngularVelocity;
+import org.wpilib.units.measure.Current;
 
 /**
  * Mechanism for the Indexer.
  */
 public class IndexerMechanism extends Mechanism {
+  private static final int DEVICE_ID_INDEXER_MOTOR_LEADER = 15;
+  private static final int DEVICE_ID_INDEXER_MOTOR_FOLLOWER = 16;
+
+  private static final Current INDEXER_PEAK_TORQUE_CURRENT_FORWARD = Amps.of(80);
+  private static final Current INDEXER_PEAK_TORQUE_CURRENT_REVERSE = INDEXER_PEAK_TORQUE_CURRENT_FORWARD.unaryMinus();
+  private static final Current INDEXER_STATOR_CURRENT_LIMIT = Amps.of(80);
+  private static final Current INDEXER_SUPPLY_CURRENT_LIMIT = Amps.of(15);
+
+  private static final SlotConfigs INDEXER_SLOT_CONFIGS = new SlotConfigs().withKP(0.5).withKV(0.02).withKS(4.0);
+
+  public static final AngularVelocity INDEXER_FEED_VELOCITY = RotationsPerSecond.of(95);
+  private static final AngularVelocity INDEXER_EJECT_VELOCITY = RotationsPerSecond.of(-80);
 
   private final TalonFX indexerLeaderMotor = new TalonFX(DEVICE_ID_INDEXER_MOTOR_LEADER, CANIVORE_BUS);
   private final TalonFX indexerFollower = new TalonFX(DEVICE_ID_INDEXER_MOTOR_FOLLOWER, CANIVORE_BUS);

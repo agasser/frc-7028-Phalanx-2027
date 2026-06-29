@@ -43,6 +43,8 @@ import first.robot.mechanisms.ShooterMechanism;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.wpilib.command3.Command;
+import org.wpilib.command3.StateMachine;
+import org.wpilib.command3.StateMachine.State;
 import org.wpilib.driverstation.MatchState;
 import org.wpilib.driverstation.RobotState;
 import org.wpilib.hardware.led.LEDPattern;
@@ -364,6 +366,63 @@ public class CommandFactory {
           coroutine.fork(intakeMechanism.shootingSequence());
         })
         .named("Tune Shoot");
+  }
+
+  public Command shootAtTargetStateMachine(
+      Supplier<Pose2d> robotPoseSupplier,
+      Function<Translation2d, Translation2d> targetTranslationSelector) {
+    // LED patterns for shooting
+    final LEDPattern patternTwo = LEDPattern.gradient(GradientType.DISCONTINUOUS, Color.BLACK, Color.RED)
+        .scrollAtRelativeVelocity(Percent.per(Second).of(300));
+    final LEDPattern patternOne = patternTwo.reversed();
+
+    StateMachine stateMachine = new StateMachine("Shoot at Target");
+
+    // Create object to share the shooting state with forked commands and condition
+    ShootingState shootingState = new ShootingState();
+
+    State aiming = stateMachine.addState(
+        Command
+            .parallel(
+                intakeMechanism.stop(),
+                  feederMechanism.stop(),
+                  indexerMechanism.stop(),
+                  shooterMechanism.runFlywheel(() -> shootingState.shooterSpeed),
+                  drivetrainMechanism.pointAtTarget(targetTranslationSelector, SHOOTER_OFFSET_ANGLE),
+                  ledMechanism
+                      .ledSegments(Color.GREEN, () -> shootingState.isAimReady, shooterMechanism::isFlywheelAtVelocity))
+            .until(() -> {
+              // Calculate target information and update shooting state for forked commands
+              var robotPose = robotPoseSupplier.get();
+              var targetTranslation = targetTranslationSelector.apply(robotPoseSupplier.get().getTranslation());
+              var headingToTarget = targetTranslation.minus(robotPose.getTranslation())
+                  .getAngle()
+                  .minus(SHOOTER_OFFSET_ANGLE);
+              shootingState.isAimReady = Math
+                  .abs(headingToTarget.minus(robotPoseSupplier.get().getRotation()).getRadians()) <= AIM_TOLERANCE
+                      .in(Radians);
+              var targetDistance = targetTranslation.getDistance(robotPose.getTranslation());
+              shootingState.shooterSpeed = RotationsPerSecond.of(HUB_SETPOINTS_BY_DISTANCE_METERS.get(targetDistance));
+              return (shootingState.isAimReady && shooterMechanism.isFlywheelAtVelocity());
+            })
+            .named("Aiming at Target"));
+
+    State shooting = stateMachine.addState(
+        Command
+            .sequence(
+                ledMechanism.runPatternOnHalves(patternOne, patternTwo),
+                  Command.waitFor(Milliseconds.of(6.0)).named("Wait to run feeder"),
+                  feederMechanism.feedShooter(),
+                  Command.waitFor(Milliseconds.of(12.0)).named("Wait to run indexer"),
+                  indexerMechanism.feedShooter(),
+                  Command.waitFor(Milliseconds.of(12.0)).named("Wait to run intake"),
+                  intakeMechanism.shootingSequence())
+            .named("Shooting at Target"));
+
+    stateMachine.setInitialState(aiming);
+    aiming.switchTo(shooting).whenComplete();
+
+    return stateMachine;
   }
 
 }
